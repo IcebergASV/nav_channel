@@ -51,6 +51,8 @@ find_package(catkin REQUIRED COMPONENTS
  add_message_files(
    FILES
    StartNavChannel.msg
+   TaskGoalPosition.msg
+   TaskStatus.msg
  )
 
 ## Generate services in the 'srv' folder
