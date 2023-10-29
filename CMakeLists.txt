@@ -53,6 +53,7 @@ find_package(catkin REQUIRED COMPONENTS
    StartNavChannel.msg
    TaskGoalPosition.msg
    TaskStatus.msg
+   Task.msg
  )
 
 ## Generate services in the 'srv' folder
@@ -123,6 +124,12 @@ include_directories(
  include
   ${catkin_INCLUDE_DIRS}
 )
+
+add_executable(nav_channel src/nav_channel.cpp)
+add_dependencies(nav_channel ${nav_channel_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(nav_channel
+   ${catkin_LIBRARIES}
+ )
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
