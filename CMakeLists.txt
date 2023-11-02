@@ -54,6 +54,8 @@ find_package(catkin REQUIRED COMPONENTS
    TaskGoalPosition.msg
    TaskStatus.msg
    Task.msg
+   Prop.msg
+   PropArray.msg
  )
 
 ## Generate services in the 'srv' folder
@@ -124,6 +126,22 @@ include_directories(
  include
   ${catkin_INCLUDE_DIRS}
 )
+
+#########################################################
+# BELOW NEEDS TO BE UNCOMMENTED FOR NAV_CHANNEL TO WORK #
+#########################################################
+
+add_executable(nav_channel src/nav_channel.cpp)
+add_dependencies(nav_channel ${nav_channel_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(nav_channel
+   ${catkin_LIBRARIES}
+ )
+
+add_executable(fake_prop_array src/fake_prop_array.cpp)
+add_dependencies(fake_prop_array ${fake_prop_array_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(fake_prop_array
+   ${catkin_LIBRARIES}
+ )
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}

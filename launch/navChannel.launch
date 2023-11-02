@@ -1,0 +1,3 @@
+<launch>
+    <node pkg="nav_channel" type="nav_channel" name="nav_channel_node" output="screen" />
+</launch>
