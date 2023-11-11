@@ -128,9 +128,9 @@ include_directories(
 #   src/${PROJECT_NAME}/nav_channel.cpp
 # )
 
-add_library(waypointSender
-  lib/waypointSender.cpp
-  include/waypointSender.h
+add_library(waypointSenderLib
+  lib/waypointSenderLib.cpp
+  include/waypointSenderLib.h
 )
 
 ## Add cmake target dependencies of the library
