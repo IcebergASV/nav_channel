@@ -12,6 +12,9 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   geometry_msgs
   message_generation
+  prop_mapper
+  geographic_msgs
+  sensor_msgs
 )
 
 ## System dependencies are found with CMake's conventions
@@ -50,12 +53,9 @@ find_package(catkin REQUIRED COMPONENTS
  #Generate messages in the 'msg' folder
  add_message_files(
    FILES
-   StartNavChannel.msg
    TaskGoalPosition.msg
    TaskStatus.msg
    Task.msg
-   Prop.msg
-   PropArray.msg
  )
 
 ## Generate services in the 'srv' folder
@@ -77,6 +77,9 @@ find_package(catkin REQUIRED COMPONENTS
    DEPENDENCIES
    geometry_msgs
    std_msgs
+   prop_mapper
+   geographic_msgs
+   sensor_msgs
  )
 
 ################################################
@@ -127,13 +130,9 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
-#########################################################
-# BELOW NEEDS TO BE UNCOMMENTED FOR NAV_CHANNEL TO WORK #
-#########################################################
-
-add_executable(nav_channel src/nav_channel.cpp)
-add_dependencies(nav_channel ${nav_channel_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(nav_channel
+add_executable(nav_channel_ctrl src/nav_channel_ctrl.cpp)
+add_dependencies(nav_channel_ctrl ${nav_channel_ctrl_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(nav_channel_ctrl
    ${catkin_LIBRARIES}
  )
 
