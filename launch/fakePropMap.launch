@@ -1,3 +1,0 @@
-<launch>
-    <node pkg="nav_channel" type="fake_prop_array" name="fake_prop_node" output="screen" if="$(arg fake_props)"/>
-</launch>

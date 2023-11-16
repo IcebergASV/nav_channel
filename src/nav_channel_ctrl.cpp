@@ -50,12 +50,12 @@ public:
 
     void setDestination(geometry_msgs::PoseStamped midpoint) {
         // sets goal_pos and then publishes it
-        goal_pos.goal_pose = midpoint;
+        goal_pos_.goal_pose = midpoint;
         // does this set orientation to (0,0,0,0), do we need to grab current orientation and set that to new orientation?
 
         ROS_INFO_STREAM("Midpoint set at " << midpoint.pose.position.x << ","<< midpoint.pose.position.y << "," << midpoint.pose.position.z);
 
-        task_goal_position_.publish(goal_pos);
+        task_goal_position_.publish(goal_pos_);
     }
 
     geometry_msgs::PoseStamped findMidpoint(int gate) {
@@ -69,43 +69,54 @@ public:
         prop_mapper::Prop green_prop;
         ROS_DEBUG_STREAM("Gate #" << gate);
 
-        for (int i = 0; (!red || !green) || i > sizeof(props.props) ; i++) {
-            double dist_to_gate = sqrt(pow(props.props[i].vector.x - current_pos.pose.pose.position.x, 2) + pow(props.props[i].vector.y - current_pos.pose.pose.position.y, 2));
-            if ((gate == 1 && dist_to_gate <= gate_max_dist) || (gate == 2 && dist_to_gate > gate_max_dist)) {
-            // using 8m as roughly 25ft
-            // gate 1 should be within 25ft, gate 2 should be at least 25ft away
-                if (props.props[i].prop_label == "Red Prop") {
-                    if (green) {
-                        float dist = sqrt(pow(green_prop.vector.x - props.props[i].vector.x, 2) + pow(green_prop.vector.y - props.props[i].vector.y, 2));
-                        if (dist < gate_max_width) {
+        for (int i = 0; (!red || !green) || i >= sizeof(props_.props) ; i++) {
+            ROS_INFO("here 1");
+            if (props_.props[i].prop_label == "Red Prop" || props_.props[i].prop_label == "Green Prop") {
+                ROS_INFO("here 2");
+                double dist_to_gate = sqrt(pow(props_.props[i].vector.x - current_pos_.pose.pose.position.x, 2) + pow(props_.props[i].vector.y - current_pos_.pose.pose.position.y, 2));
+                if ((gate == 1 && dist_to_gate <= gate_max_dist) || (gate == 2 && dist_to_gate > gate_max_dist)) {
+                // using 8m as roughly 25ft
+                // gate 1 should be within 25ft, gate 2 should be at least 25ft away
+                    ROS_INFO("here 3");
+                    if (props_.props[i].prop_label == "Red Prop") {
+                        if (green) {
+                            ROS_INFO("here 4");
+                            float dist = sqrt(pow(green_prop.vector.x - props_.props[i].vector.x, 2) + pow(green_prop.vector.y - props_.props[i].vector.y, 2));
+                            if (dist < gate_max_width) {
+                                red = true;
+                                red_prop  = props_.props[i];
+                                ROS_INFO_STREAM("Red Buoy found at " << red_prop.vector.x << ", " << red_prop.vector.y);
+                            }
+                        }
+                        else {
+                            ROS_INFO("here 5");
                             red = true;
-                            red_prop  = props.props[i];
+                            red_prop  = props_.props[i];
                         }
                     }
-                    else {
-                        red = true;
-                        red_prop  = props.props[i];
-                    }
-                }
-                if (props.props[i].prop_label == "Green Prop") {
-                    if (red) {
-                        float dist = sqrt(pow(red_prop.vector.x - props.props[i].vector.x, 2) + pow(red_prop.vector.y - props.props[i].vector.y, 2));
-                        if (dist < gate_max_width) {
+
+                    if (props_.props[i].prop_label == "Green Prop") {
+                        if (red) {
+                            ROS_INFO("here 6");
+                            float dist = sqrt(pow(red_prop.vector.x - props_.props[i].vector.x, 2) + pow(red_prop.vector.y - props_.props[i].vector.y, 2));
+                            if (dist < gate_max_width) {
+                                green = true;
+                                green_prop = props_.props[i];
+                                ROS_INFO_STREAM("Green Buoy found at " << green_prop.vector.x << ", " << green_prop.vector.y);
+                            }
+                        }
+                        else {
+                            ROS_INFO("here 7");
                             green = true;
-                            green_prop = props.props[i];
+                            green_prop  = props_.props[i];
                         }
-                    }
-                    else {
-                        green = true;
-                        green_prop  = props.props[i];
                     }
                 }
             }
-            
-            
         }
-
+            
         if (red && green) {
+            ROS_INFO("here 8");
             float red_x = red_prop.vector.x;
             float red_y = red_prop.vector.y;
             //float red_z = red_prop.vector.z;
@@ -120,7 +131,7 @@ public:
         }
 
         else {
-            ROS_DEBUG("gates were not found.");
+            ROS_INFO("gates were not found.");
         }
 
         ROS_DEBUG("returning midpoint.");
@@ -132,8 +143,8 @@ public:
         ROS_DEBUG("travelling...");
         // check to see it we are at the goal (within a set amount of error)
         bool atDestination = false;
-        if (current_pos.pose.pose.position.x < goal_pos.goal_pose.pose.position.x+error & current_pos.pose.pose.position.x > goal_pos.goal_pose.pose.position.x-error) {
-            if (current_pos.pose.pose.position.y < goal_pos.goal_pose.pose.position.y+error & current_pos.pose.pose.position.y > goal_pos.goal_pose.pose.position.y-error) {
+        if (current_pos_.pose.pose.position.x < goal_pos_.goal_pose.pose.position.x+error & current_pos_.pose.pose.position.x > goal_pos_.goal_pose.pose.position.x-error) {
+            if (current_pos_.pose.pose.position.y < goal_pos_.goal_pose.pose.position.y+error & current_pos_.pose.pose.position.y > goal_pos_.goal_pose.pose.position.y-error) {
                 atDestination = true;
             }
         }
@@ -151,9 +162,9 @@ private:
     ros::Publisher task_status_;
     ros::Publisher task_goal_position_;
 
-    nav_msgs::Odometry current_pos;
-    prop_mapper::PropArray props; //temporarily replacing with fake props
-    nav_channel::TaskGoalPosition goal_pos;
+    nav_msgs::Odometry current_pos_;
+    prop_mapper::PropArray props_; //temporarily replacing with fake props
+    nav_channel::TaskGoalPosition goal_pos_;
 
     double error;
     double gate_max_dist;
@@ -237,12 +248,12 @@ private:
     // prop_array is a list of props, which are themselves a
     // msg with a string (prop_label) and a Vector3 position
     void propMapCallback(const prop_mapper::PropArray msg) {
-        props = msg;
+        props_ = msg;
     }
 
     void globalPositionCallback(const nav_msgs::Odometry msg) {
         // set our current position
-        current_pos = msg;
+        current_pos_ = msg;
     }
 };
 

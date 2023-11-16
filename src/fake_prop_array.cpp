@@ -1,6 +1,4 @@
 #include <ros/ros.h>
-//#include <nav_channel/PropArray.h>
-//#include <nav_channel/Prop.h>
 #include <prop_mapper/PropArray.h>
 #include <prop_mapper/Prop.h>
 #include <nav_channel/TaskStatus.h>
