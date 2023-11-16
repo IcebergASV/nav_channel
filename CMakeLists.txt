@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   geometry_msgs
   message_generation
+  mavros
 )
 
 ## System dependencies are found with CMake's conventions
@@ -128,6 +129,11 @@ include_directories(
 # add_library(${PROJECT_NAME}
 #   src/${PROJECT_NAME}/nav_channel.cpp
 # )
+
+add_library(waypointSenderLib
+  lib/waypointSenderLib.cpp
+  include/waypointSenderLib.h
+)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
