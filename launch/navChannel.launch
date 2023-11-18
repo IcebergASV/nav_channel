@@ -1,0 +1,11 @@
+<launch>
+
+    <!-- argument for fake props (if needed) -->
+    <arg name="fake_props" default="true"/> <!-- set to false if we want to find real props-->
+
+    <node pkg="nav_channel" type="nav_channel_ctrl" name="nav_channel_node" output="screen">
+        <rosparam file="$(find nav_channel)/config/params.yaml" command="load" />
+    </node>
+
+    <node pkg="nav_channel" type="fake_prop_array" name="fake_prop_node" output="screen" if="$(arg fake_props)"/>
+</launch>

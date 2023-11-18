@@ -12,7 +12,11 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   geometry_msgs
   message_generation
-  mavros
+  prop_mapper
+  geographic_msgs
+  sensor_msgs
+  mavros_msgs
+
 )
 
 ## System dependencies are found with CMake's conventions
@@ -51,9 +55,9 @@ find_package(catkin REQUIRED COMPONENTS
  #Generate messages in the 'msg' folder
  add_message_files(
    FILES
-   StartNavChannel.msg
    TaskGoalPosition.msg
    TaskStatus.msg
+   Task.msg
  )
 
 ## Generate services in the 'srv' folder
@@ -75,6 +79,9 @@ find_package(catkin REQUIRED COMPONENTS
    DEPENDENCIES
    geometry_msgs
    std_msgs
+   prop_mapper
+   geographic_msgs
+   sensor_msgs
  )
 
 ################################################
@@ -124,6 +131,18 @@ include_directories(
  include
   ${catkin_INCLUDE_DIRS}
 )
+
+add_executable(nav_channel_ctrl src/nav_channel_ctrl.cpp)
+add_dependencies(nav_channel_ctrl ${nav_channel_ctrl_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(nav_channel_ctrl
+   ${catkin_LIBRARIES}
+ )
+
+add_executable(fake_prop_array src/fake_prop_array.cpp)
+add_dependencies(fake_prop_array ${fake_prop_array_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(fake_prop_array
+   ${catkin_LIBRARIES}
+ )
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
