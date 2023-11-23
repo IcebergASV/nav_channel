@@ -68,13 +68,20 @@ public:
         prop_mapper::Prop red_prop;
         prop_mapper::Prop green_prop;
         ROS_DEBUG_STREAM("Gate #" << gate);
+        ROS_INFO("fM 1");
 
         for (int i = 0; (!red || !green) || i >= sizeof(props_.props) ; i++) {
+            ROS_INFO("fM 2");
             if (props_.props[i].prop_label == "Red Prop" || props_.props[i].prop_label == "Green Prop") {
+                ROS_INFO("fM 3");
                 double dist_to_gate = sqrt(pow(props_.props[i].vector.x - current_pos_.pose.pose.position.x, 2) + pow(props_.props[i].vector.y - current_pos_.pose.pose.position.y, 2));
+                ROS_INFO_STREAM(gate);
+                ROS_INFO_STREAM(gate_max_dist);
+                ROS_INFO_STREAM(dist_to_gate);
                 if ((gate == 1 && dist_to_gate <= gate_max_dist) || (gate == 2 && dist_to_gate > gate_max_dist)) {
                 // using 8m as roughly 25ft
                 // gate 1 should be within 25ft, gate 2 should be at least 25ft away
+                    ROS_INFO("fM 4");
                     if (props_.props[i].prop_label == "Red Prop") {
                         if (green) {
                             float dist = sqrt(pow(green_prop.vector.x - props_.props[i].vector.x, 2) + pow(green_prop.vector.y - props_.props[i].vector.y, 2));
@@ -107,8 +114,12 @@ public:
                         }
                     }
                 }
+                else {
+                    ROS_INFO("Gate not within max distance.");
+                }
             }
         }
+        ROS_INFO("fM 5");
             
         if (red && green) {
             float red_x = red_prop.vector.x;
@@ -127,6 +138,7 @@ public:
         else {
             ROS_INFO("gates were not found.");
         }
+        ROS_INFO("fM 6");
 
         ROS_DEBUG("returning midpoint.");
 
@@ -171,13 +183,16 @@ private:
         if(msg.task.current_task == task_master::Task::NAVIGATION_CHANNEL) {
             // start task
             task_master::TaskStatus taskStatus;
-            taskStatus.status = task_master::TaskStatus::IN_PROGRESS;
-            task_status_.publish(taskStatus);
 
             switch (status)
             {
             case states::not_started: {
                 ROS_INFO("in not started case.");
+
+                taskStatus.status = task_master::TaskStatus::IN_PROGRESS;
+                taskStatus.task.current_task = task_master::Task::NAVIGATION_CHANNEL;
+                task_status_.publish(taskStatus);
+
                 status = states::find_wp1;
                 }
                 break;
@@ -187,8 +202,9 @@ private:
 
                 ROS_INFO("start task.");
                 geometry_msgs::PoseStamped midpoint = findMidpoint(1);
+                ROS_INFO("found midpoint.");
                 setDestination(midpoint);
-
+                ROS_INFO("set midpoint.");
                 status = states::moving_to_wp1;
                 }
                 break;
