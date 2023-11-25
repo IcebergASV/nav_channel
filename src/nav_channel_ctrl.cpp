@@ -50,10 +50,12 @@ public:
 
     void setDestination(auto midpoint) {
         // sets goal_pos and then publishes it
-        goal_pos_.goal_pose = midpoint;
+        goal_pos_.x = midpoint.x;
+        goal_pos_.y = midpoint.y;
+        goal_pos_.z = midpoint.z;
         // does this set orientation to (0,0,0,0), do we need to grab current orientation and set that to new orientation?
 
-        ROS_INFO_STREAM("Midpoint set at " << midpoint.pose.position.x << ","<< midpoint.pose.position.y << "," << midpoint.pose.position.z);
+        ROS_INFO_STREAM("Midpoint set at " << midpoint.x << ","<< midpoint.y << "," << midpoint.z);
 
         task_goal_position_.publish(goal_pos_);
     }
@@ -146,8 +148,8 @@ public:
         ROS_DEBUG("travelling...");
         // check to see it we are at the goal (within a set amount of error)
         bool atDestination = false;
-        if (current_pos_.pose.pose.position.x < goal_pos_.goal_pose.pose.position.x+error & current_pos_.pose.pose.position.x > goal_pos_.goal_pose.pose.position.x-error) {
-            if (current_pos_.pose.pose.position.y < goal_pos_.goal_pose.pose.position.y+error & current_pos_.pose.pose.position.y > goal_pos_.goal_pose.pose.position.y-error) {
+        if (current_pos_.pose.pose.position.x < goal_pos_.x+error & current_pos_.pose.pose.position.x > goal_pos_.x-error) {
+            if (current_pos_.pose.pose.position.y < goal_pos_.y+error & current_pos_.pose.pose.position.y > goal_pos_.y-error) {
                 ROS_INFO("Arrived at destination.");
                 atDestination = true;
             }
