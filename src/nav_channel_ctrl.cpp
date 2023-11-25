@@ -48,7 +48,7 @@ public:
         }
     }
 
-    void setDestination(geometry_msgs::PoseStamped midpoint) {
+    void setDestination(auto midpoint) {
         // sets goal_pos and then publishes it
         goal_pos_.goal_pose = midpoint;
         // does this set orientation to (0,0,0,0), do we need to grab current orientation and set that to new orientation?
@@ -58,30 +58,29 @@ public:
         task_goal_position_.publish(goal_pos_);
     }
 
-    geometry_msgs::PoseStamped findMidpoint(int gate) {
+    auto findMidpoint(int gate) {
         // validates positions of props, then calculates midpoint, and returns
         // it as PoseStamped
-        geometry_msgs::PoseStamped midpoint;
+        struct
+        {
+            float x;
+            float y;
+            float z;
+        } midpoint;
+        
 
         bool red = false;   // use two booleans to determine if props exist
         bool green = false;
         prop_mapper::Prop red_prop;
         prop_mapper::Prop green_prop;
         ROS_DEBUG_STREAM("Gate #" << gate);
-        ROS_INFO("fM 1");
 
         for (int i = 0; (!red || !green) || i >= sizeof(props_.props) ; i++) {
-            ROS_INFO("fM 2");
             if (props_.props[i].prop_label == "Red Prop" || props_.props[i].prop_label == "Green Prop") {
-                ROS_INFO("fM 3");
                 double dist_to_gate = sqrt(pow(props_.props[i].vector.x - current_pos_.pose.pose.position.x, 2) + pow(props_.props[i].vector.y - current_pos_.pose.pose.position.y, 2));
-                ROS_INFO_STREAM(gate);
-                ROS_INFO_STREAM(gate_max_dist);
-                ROS_INFO_STREAM(dist_to_gate);
                 if ((gate == 1 && dist_to_gate <= gate_max_dist) || (gate == 2 && dist_to_gate > gate_max_dist)) {
                 // using 8m as roughly 25ft
                 // gate 1 should be within 25ft, gate 2 should be at least 25ft away
-                    ROS_INFO("fM 4");
                     if (props_.props[i].prop_label == "Red Prop") {
                         if (green) {
                             float dist = sqrt(pow(green_prop.vector.x - props_.props[i].vector.x, 2) + pow(green_prop.vector.y - props_.props[i].vector.y, 2));
@@ -119,7 +118,6 @@ public:
                 }
             }
         }
-        ROS_INFO("fM 5");
             
         if (red && green) {
             float red_x = red_prop.vector.x;
@@ -129,16 +127,15 @@ public:
             float green_y = green_prop.vector.y;
             //float green_z = green_prop.vector.z;
 
-            midpoint.pose.position.x = (red_x+green_x)/2;
-            midpoint.pose.position.y = (red_y+green_y)/2;
-            //midpoint.pose.position.z = (red_z+green_z)/2;
-            midpoint.pose.position.z = 0;
+            midpoint.x = (red_x+green_x)/2;
+            midpoint.y = (red_y+green_y)/2;
+            //midpoint.z = (red_z+green_z)/2;
+            midpoint.z = 0;
         }
 
         else {
             ROS_INFO("gates were not found.");
         }
-        ROS_INFO("fM 6");
 
         ROS_DEBUG("returning midpoint.");
 
@@ -187,7 +184,7 @@ private:
             switch (status)
             {
             case states::not_started: {
-                ROS_INFO("in not started case.");
+                ROS_DEBUG("in not started case.");
 
                 taskStatus.status = task_master::TaskStatus::IN_PROGRESS;
                 taskStatus.task.current_task = task_master::Task::NAVIGATION_CHANNEL;
@@ -200,11 +197,11 @@ private:
             case states::find_wp1: {
                 // if have two good props, ie. red on left, green on right, within 10 feet of each other, then go
 
-                ROS_INFO("start task.");
-                geometry_msgs::PoseStamped midpoint = findMidpoint(1);
-                ROS_INFO("found midpoint.");
+                ROS_INFO("Start task.");
+                auto midpoint = findMidpoint(1);
+                ROS_INFO("Found midpoint.");
                 setDestination(midpoint);
-                ROS_INFO("set midpoint.");
+                ROS_INFO("Set midpoint.");
                 status = states::moving_to_wp1;
                 }
                 break;
@@ -224,7 +221,7 @@ private:
             case states::find_wp2: {
                 
                 ROS_DEBUG("at gate 1.");
-                geometry_msgs::PoseStamped midpoint = findMidpoint(2);
+                auto midpoint = findMidpoint(2);
                 setDestination(midpoint);
 
                 status = states::moving_to_wp2;
