@@ -8,6 +8,7 @@
 #include <nav_msgs/Odometry.h>
 #include <cmath>
 #include <iostream>
+#include <geometry_msgs/Point.h>
 
 class NavChannel {
 public:
@@ -48,11 +49,9 @@ public:
         }
     }
 
-    void setDestination(auto midpoint) {
+    void setDestination(geometry_msgs::Point midpoint) {
         // sets goal_pos and then publishes it
-        goal_pos_.x = midpoint.x;
-        goal_pos_.y = midpoint.y;
-        goal_pos_.z = midpoint.z;
+        goal_pos_.point = midpoint;
         // does this set orientation to (0,0,0,0), do we need to grab current orientation and set that to new orientation?
 
         ROS_INFO_STREAM("Midpoint set at " << midpoint.x << ","<< midpoint.y << "," << midpoint.z);
@@ -60,15 +59,10 @@ public:
         task_goal_position_.publish(goal_pos_);
     }
 
-    auto findMidpoint(int gate) {
+    geometry_msgs::Point findMidpoint(int gate) {
         // validates positions of props, then calculates midpoint, and returns
-        // it as PoseStamped
-        struct
-        {
-            float x;
-            float y;
-            float z;
-        } midpoint;
+        // it as Point
+        geometry_msgs::Point midpoint;
         
 
         bool red = false;   // use two booleans to determine if props exist
@@ -200,7 +194,7 @@ private:
                 // if have two good props, ie. red on left, green on right, within 10 feet of each other, then go
 
                 ROS_INFO("Start task.");
-                auto midpoint = findMidpoint(1);
+                geometry_msgs::Point midpoint = findMidpoint(1);
                 ROS_INFO("Found midpoint.");
                 setDestination(midpoint);
                 ROS_INFO("Set midpoint.");
@@ -223,7 +217,7 @@ private:
             case states::find_wp2: {
                 
                 ROS_DEBUG("at gate 1.");
-                auto midpoint = findMidpoint(2);
+                geometry_msgs::Point midpoint = findMidpoint(2);
                 setDestination(midpoint);
 
                 status = states::moving_to_wp2;
