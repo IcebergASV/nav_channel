@@ -52,6 +52,7 @@ public:
     void setDestination(geometry_msgs::Point midpoint) {
         // sets goal_pos and then publishes it
         goal_pos_.point = midpoint;
+        goal_pos_.task = 1; // sets task to nav_channel for message filtering
         // does this set orientation to (0,0,0,0), do we need to grab current orientation and set that to new orientation?
 
         ROS_INFO_STREAM("Midpoint set at " << midpoint.x << ","<< midpoint.y << "," << midpoint.z);
