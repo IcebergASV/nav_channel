@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   geographic_msgs
   sensor_msgs
   mavros_msgs
+  task_master
 
 )
 
@@ -82,6 +83,7 @@ find_package(catkin REQUIRED COMPONENTS
    prop_mapper
    geographic_msgs
    sensor_msgs
+   task_master
  )
 
 ################################################
