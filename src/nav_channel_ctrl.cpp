@@ -258,7 +258,7 @@ private:
 };
 
 int main(int argc, char** argv) {
-    ros::init(argc, argv, "nav_channel_node");
+    ros::init(argc, argv, "nav_channel_ctrl");
     if (ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Info))
         ros::console::notifyLoggerLevelsChanged();
 
