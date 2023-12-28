@@ -1,10 +1,11 @@
 #include <ros/ros.h>
-#include <nav_channel/TaskStatus.h>
-#include <nav_channel/TaskGoalPosition.h>
-#include <nav_channel/Task.h>
+#include <task_master/TaskStatus.h>
+#include <task_master/TaskGoalPosition.h>
+#include <task_master/Task.h>
 #include <string>
 #include <prop_mapper/PropArray.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
+#include <geometry_msgs/PoseStamped.h>
 #include <nav_msgs/Odometry.h>
 #include <cmath>
 #include <iostream>
@@ -35,10 +36,10 @@ public:
         // ROS publishers
 
         // we publish to task_status to update us on progress of task
-        task_status_ = nh_.advertise<nav_channel::TaskStatus>("task_status", 10);
+        task_status_ = nh_.advertise<task_master::TaskStatus>("task_status", 10);
 
         // we publish to task_goal_position to send the boat to a waypoint
-        task_goal_position_ = nh_.advertise<nav_channel::TaskGoalPosition>("task_goal_position", 10);
+        task_goal_position_ = nh_.advertise<task_master::TaskGoalPosition>("task_goal_position", 10);
     }
 
     void spin() {
@@ -206,6 +207,8 @@ private:
                 while(!isReached())
                 {
                     setDestination(midpoint);
+                    ros::Rate rate(10);
+                    rate.sleep();
                 }
 
                 if (isReached()) {
@@ -224,6 +227,8 @@ private:
                 while(!isReached())
                 {
                     setDestination(midpoint);
+                    ros::Rate rate(10);
+                    rate.sleep();
                 }
 
                 if (isReached()) {
