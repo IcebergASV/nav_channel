@@ -17,7 +17,8 @@ public:
         private_nh_.param<double>("error", error, 1.0); // leniency for if we are at the gate
         private_nh_.param<double>("gate_max_dist", gate_max_dist, 8.0); // max distance for gate 1, determines if we are looking at the right gate, 8.0m is roughly 25ft, can make more accurate if needed.
         private_nh_.param<double>("gate_max_width", gate_max_width, 4.0); // max distance between two buoys for a gate, confirming we have the two correct ones. 4.0m is roughly 13ft, accounts for max gap and diameter.
-
+        private_nh_.param<std::string>("red_marker", red_marker, "red_marker");
+        private_nh_.param<std::string>("green_marker", green_marker, "red_marker");
 
         // ROS subscribers
 
@@ -25,7 +26,7 @@ public:
         task_to_exec_ = nh_.subscribe("task_to_execute", 10, &NavChannel::navChannelCallback, this);
         
         // props will get the prop map and store it
-        prop_map_ = nh_.subscribe("props", 10, &NavChannel::propMapCallback, this);
+        prop_map_ = nh_.subscribe("/prop_array", 10, &NavChannel::propMapCallback, this);
 
         // global_position/local grabs position from mavros and stores it
         global_pos_ = nh_.subscribe("mavros/global_position/local", 10, &NavChannel::globalPositionCallback, this);
@@ -67,18 +68,21 @@ public:
         bool green = false;
         prop_mapper::Prop red_prop;
         prop_mapper::Prop green_prop;
+
         ROS_DEBUG_STREAM("Gate #" << gate);
 
         for (int i = 0; (!red || !green) || i >= sizeof(props_.props) ; i++) {
             ROS_INFO("here 1");
-            if (props_.props[i].prop_label == "Red Prop" || props_.props[i].prop_label == "Green Prop") {
+            ROS_DEBUG_STREAM("Prop array " << props_);
+            //if (props_.props[i].prop_label == "red_marker" || props_.props[i].prop_label == "green_marker" || true) {
+            if (true) {
                 ROS_INFO("here 2");
                 double dist_to_gate = sqrt(pow(props_.props[i].vector.x - current_pos_.pose.pose.position.x, 2) + pow(props_.props[i].vector.y - current_pos_.pose.pose.position.y, 2));
                 if ((gate == 1 && dist_to_gate <= gate_max_dist) || (gate == 2 && dist_to_gate > gate_max_dist)) {
                 // using 8m as roughly 25ft
                 // gate 1 should be within 25ft, gate 2 should be at least 25ft away
                     ROS_INFO("here 3");
-                    if (props_.props[i].prop_label == "Red Prop") {
+                    if (props_.props[i].prop_label == red_marker) {
                         if (green) {
                             ROS_INFO("here 4");
                             float dist = sqrt(pow(green_prop.vector.x - props_.props[i].vector.x, 2) + pow(green_prop.vector.y - props_.props[i].vector.y, 2));
@@ -95,7 +99,7 @@ public:
                         }
                     }
 
-                    if (props_.props[i].prop_label == "Green Prop") {
+                    if (props_.props[i].prop_label == green_marker) {
                         if (red) {
                             ROS_INFO("here 6");
                             float dist = sqrt(pow(red_prop.vector.x - props_.props[i].vector.x, 2) + pow(red_prop.vector.y - props_.props[i].vector.y, 2));
@@ -139,7 +143,7 @@ public:
         return midpoint;
     }
 
-    bool travelling() {
+    bool isReached() {
         ROS_DEBUG("travelling...");
         // check to see it we are at the goal (within a set amount of error)
         bool atDestination = false;
@@ -166,9 +170,13 @@ private:
     prop_mapper::PropArray props_; //temporarily replacing with fake props
     nav_channel::TaskGoalPosition goal_pos_;
 
+    std::string TAG = "NAV_CHANNEL_CTRL: ";
+
     double error;
     double gate_max_dist;
     double gate_max_width;
+    std::string red_marker;
+    std::string green_marker;
     enum states {not_started, find_wp1, moving_to_wp1, find_wp2, moving_to_wp2, complete};
     states status = states::not_started;
 
@@ -192,22 +200,19 @@ private:
 
                 ROS_INFO("start task.");
                 geometry_msgs::PoseStamped midpoint = findMidpoint(1);
+
                 setDestination(midpoint);
 
-                status = states::moving_to_wp1;
+                while(!isReached())
+                {
+                    setDestination(midpoint);
                 }
-                break;
 
-            case states::moving_to_wp1: {
-
-                bool at_destination = travelling();
-                
-                if (at_destination) {
+                if (isReached()) {
                     status = states::find_wp2;
                 };
                 }
                 break;
-
             // should consider case where props are 100ft out, being out of lidar range
 
             case states::find_wp2: {
@@ -215,19 +220,16 @@ private:
                 ROS_INFO("at gate 1.");
                 geometry_msgs::PoseStamped midpoint = findMidpoint(2);
                 setDestination(midpoint);
-
-                status = states::moving_to_wp2;
+                
+                while(!isReached())
+                {
+                    setDestination(midpoint);
                 }
-                break;
 
-            case states::moving_to_wp2: {
-                
-                bool at_destination = travelling();
-                
-                if (at_destination) {
+                if (isReached()) {
                     status = states::complete;
                 };
-                }
+            }
                 break;
 
             case states::complete: {
@@ -259,7 +261,7 @@ private:
 
 int main(int argc, char** argv) {
     ros::init(argc, argv, "nav_channel_ctrl");
-    if (ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Info))
+    if (ros::console::set_logger_level(ROSCONSOLE_DEFAULT_NAME, ros::console::levels::Debug))
         ros::console::notifyLoggerLevelsChanged();
 
     NavChannel nav_channel;

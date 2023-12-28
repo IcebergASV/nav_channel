@@ -1,4 +1,7 @@
 # nav_channel
 error: 1 # acceptable distance for error when determining if we are at the goal, in meters.
-gate_max_dist: 8.0 # max distance for gate 1, minimum distance for gate 2.
-gate_max_width: 4.0 # max gap between buoys, accounts for diameter of buoys as well.
+gate_max_dist: 100.0 # max distance for gate 1, minimum distance for gate 2.
+gate_max_width: 100.0 # max gap between buoys, accounts for diameter of buoys as well.
+
+red_marker: "red_marker"
+green_marker: "green_marker"
