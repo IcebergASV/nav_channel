@@ -77,13 +77,14 @@ int main(int argc, char** argv) {
     prop_array.props.push_back(red_prop_g2);
     prop_array.props.push_back(green_prop_g2);
 
-    nav_channel::TaskStatus task;
-    task.task.current_task = 1;
+    // Sets task to nav_channel without use of task_master
+    //nav_channel::TaskStatus task;
+    //task.task.current_task = 1;
 
     while (ros::ok())
     {
         pub.publish(prop_array);
-        task_pub.publish(task);
+        //task_pub.publish(task);
         ros::spinOnce();
         loop_rate.sleep();
     }
