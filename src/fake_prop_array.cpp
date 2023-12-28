@@ -1,7 +1,7 @@
 #include <ros/ros.h>
 #include <prop_mapper/PropArray.h>
 #include <prop_mapper/Prop.h>
-#include <nav_channel/TaskStatus.h>
+#include <task_master/TaskStatus.h>
 
 // ALSO INCLUDES FAKE TASK MANAGER
 
@@ -10,7 +10,7 @@ int main(int argc, char** argv) {
     ros::NodeHandle nh;
 
     ros::Publisher pub = nh.advertise<prop_mapper::PropArray>("props", 1000);
-    ros::Publisher task_pub = nh.advertise<nav_channel::TaskStatus>("task_to_execute", 1000);
+    ros::Publisher task_pub = nh.advertise<task_master::TaskStatus>("task_to_execute", 1000);
     ros::Rate loop_rate(2);
 
     // TEST PROP SET 1

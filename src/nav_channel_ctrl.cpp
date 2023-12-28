@@ -54,7 +54,7 @@ public:
     void setDestination(geometry_msgs::Point midpoint) {
         // sets goal_pos and then publishes it
         goal_pos_.point = midpoint;
-        goal_pos_.task = 1; // sets task to nav_channel for message filtering
+        goal_pos_.task.current_task = 1; // sets task to nav_channel for message filtering
         // does this set orientation to (0,0,0,0), do we need to grab current orientation and set that to new orientation?
 
         ROS_INFO_STREAM("Midpoint set at " << midpoint.x << ","<< midpoint.y << "," << midpoint.z);
@@ -66,7 +66,7 @@ public:
         // validates positions of props, then calculates midpoint, and returns
         // it as Point
         geometry_msgs::Point midpoint;
-        
+
 
         bool red = false;   // use two booleans to determine if props exist
         bool green = false;
@@ -76,26 +76,19 @@ public:
         ROS_DEBUG_STREAM("Gate #" << gate);
 
         for (int i = 0; (!red || !green) || i >= sizeof(props_.props) ; i++) {
-<<<<<<< HEAD
             ROS_INFO("here 1");
             ROS_DEBUG_STREAM("Prop array " << props_);
-            //if (props_.props[i].prop_label == "red_marker" || props_.props[i].prop_label == "green_marker" || true) {
-            if (true) {
+            if (props_.props[i].prop_label == "red_marker" || props_.props[i].prop_label == "green_marker" || true) {
+            
                 ROS_INFO("here 2");
-=======
-            if (props_.props[i].prop_label == "Red Prop" || props_.props[i].prop_label == "Green Prop") {
->>>>>>> fe534f2f6911127098fabcdafaddd467aa97301d
                 double dist_to_gate = sqrt(pow(props_.props[i].vector.x - current_pos_.pose.pose.position.x, 2) + pow(props_.props[i].vector.y - current_pos_.pose.pose.position.y, 2));
                 if ((gate == 1 && dist_to_gate <= gate_max_dist) || (gate == 2 && dist_to_gate > gate_max_dist)) {
                 // using 8m as roughly 25ft
                 // gate 1 should be within 25ft, gate 2 should be at least 25ft away
-<<<<<<< HEAD
                     ROS_INFO("here 3");
                     if (props_.props[i].prop_label == red_marker) {
-=======
-                    if (props_.props[i].prop_label == "Red Prop") {
->>>>>>> fe534f2f6911127098fabcdafaddd467aa97301d
                         if (green) {
+                            ROS_INFO("here 4");
                             float dist = sqrt(pow(green_prop.vector.x - props_.props[i].vector.x, 2) + pow(green_prop.vector.y - props_.props[i].vector.y, 2));
                             if (dist < gate_max_width) {
                                 red = true;
@@ -104,14 +97,15 @@ public:
                             }
                         }
                         else {
+                            ROS_INFO("here 5");
                             red = true;
                             red_prop  = props_.props[i];
-                            ROS_INFO_STREAM("Red Buoy found at " << red_prop.vector.x << ", " << red_prop.vector.y);
                         }
                     }
 
                     if (props_.props[i].prop_label == green_marker) {
                         if (red) {
+                            ROS_INFO("here 6");
                             float dist = sqrt(pow(red_prop.vector.x - props_.props[i].vector.x, 2) + pow(red_prop.vector.y - props_.props[i].vector.y, 2));
                             if (dist < gate_max_width) {
                                 green = true;
@@ -120,19 +114,20 @@ public:
                             }
                         }
                         else {
+                            ROS_INFO("here 7");
                             green = true;
                             green_prop  = props_.props[i];
-                            ROS_INFO_STREAM("Green Buoy found at " << green_prop.vector.x << ", " << green_prop.vector.y);
                         }
                     }
                 }
-                else {
+else {
                     ROS_INFO("Gate not within max distance.");
                 }
             }
         }
             
         if (red && green) {
+            ROS_INFO("here 8");
             float red_x = red_prop.vector.x;
             float red_y = red_prop.vector.y;
             //float red_z = red_prop.vector.z;
@@ -159,9 +154,8 @@ public:
         ROS_DEBUG("travelling...");
         // check to see it we are at the goal (within a set amount of error)
         bool atDestination = false;
-        if (current_pos_.pose.pose.position.x < goal_pos_.x+error & current_pos_.pose.pose.position.x > goal_pos_.x-error) {
-            if (current_pos_.pose.pose.position.y < goal_pos_.y+error & current_pos_.pose.pose.position.y > goal_pos_.y-error) {
-                ROS_INFO("Arrived at destination.");
+        if (current_pos_.pose.pose.position.x < goal_pos_.point.x+error & current_pos_.pose.pose.position.x > goal_pos_.point.x-error) {
+            if (current_pos_.pose.pose.position.y < goal_pos_.point.y+error & current_pos_.pose.pose.position.y > goal_pos_.point.y-error) {
                 atDestination = true;
             }
         }
@@ -197,6 +191,8 @@ private:
         if(msg.task.current_task == task_master::Task::NAVIGATION_CHANNEL) {
             // start task
             task_master::TaskStatus taskStatus;
+            taskStatus.status = task_master::TaskStatus::IN_PROGRESS;
+            task_status_.publish(taskStatus);
 
             switch (status)
             {
@@ -214,9 +210,8 @@ private:
             case states::find_wp1: {
                 // if have two good props, ie. red on left, green on right, within 10 feet of each other, then go
 
-<<<<<<< HEAD
                 ROS_INFO("start task.");
-                geometry_msgs::PoseStamped midpoint = findMidpoint(1);
+                geometry_msgs::Point midpoint = findMidpoint(1);
 
                 setDestination(midpoint);
 
@@ -225,14 +220,6 @@ private:
                     setDestination(midpoint);
                     ros::Rate rate(10);
                     rate.sleep();
-=======
-                ROS_INFO("Start task.");
-                geometry_msgs::Point midpoint = findMidpoint(1);
-                ROS_INFO("Found midpoint.");
-                setDestination(midpoint);
-                ROS_INFO("Set midpoint.");
-                status = states::moving_to_wp1;
->>>>>>> fe534f2f6911127098fabcdafaddd467aa97301d
                 }
 
                 if (isReached()) {
