@@ -5,6 +5,7 @@
 
     <node pkg="nav_channel" type="nav_channel_ctrl" name="nav_channel_node" output="screen">
         <rosparam file="$(find nav_channel)/config/params.yaml" command="load" />
+        <remap from="/mavros/local_position/pose" to="/gazebo_pose"/>
     </node>
 
     <node pkg="nav_channel" type="fake_prop_array" name="fake_prop_node" output="screen" if="$(arg fake_props)"/>
