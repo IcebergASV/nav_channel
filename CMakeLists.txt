@@ -11,7 +11,6 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
   geometry_msgs
-  message_generation
   prop_mapper
   geographic_msgs
   sensor_msgs
@@ -54,12 +53,9 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
  #Generate messages in the 'msg' folder
- add_message_files(
-   FILES
-   TaskGoalPosition.msg
-   TaskStatus.msg
-   Task.msg
- )
+ #add_message_files(
+ #  FILES
+ #)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -76,15 +72,15 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
- generate_messages(
-   DEPENDENCIES
-   geometry_msgs
-   std_msgs
-   prop_mapper
-   geographic_msgs
-   sensor_msgs
-   task_master
- )
+# generate_messages(
+#   DEPENDENCIES
+#   geometry_msgs
+#   std_msgs
+#   prop_mapper
+#   geographic_msgs
+#   sensor_msgs
+#   task_master
+# )
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
