@@ -126,7 +126,8 @@ public:
     }
 
 
-    geometry_msgs::Point findMidpoint(prop_mapper::Prop marker1, prop_mapper::Prop marker2)
+    // TODO - change name to "findMidpoint" after old findMindpoint removed
+    geometry_msgs::Point new_findMidpoint(prop_mapper::Prop marker1, prop_mapper::Prop marker2)
     {
         geometry_msgs::Point midpnt;
         midpnt.x = (marker1.vector.x+marker2.vector.x)/2;
