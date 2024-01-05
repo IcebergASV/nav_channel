@@ -63,6 +63,82 @@ public:
         task_goal_position_.publish(goal_pos_);
     }
 
+    enum Colour {
+        RED,
+        GREEN,
+        BLUE
+    };
+
+    /**
+     * TODO
+    */
+    bool isValidMarker(prop_mapper::Prop marker, Colour colour)
+    {
+
+    }
+
+    /**
+     * TODO
+    */
+    bool isValidGate(prop_mapper::Prop red_marker, prop_mapper::Prop green_marker)
+    {
+
+    }
+
+    bool findGate(int gate_to_find, prop_mapper::Prop &green_marker, prop_mapper::Prop &red_marker)
+    {
+        prop_mapper::Prop temp_green;
+        prop_mapper::Prop temp_red;
+
+        bool green_found = false;
+        bool red_found = false;
+        bool gate_found = false;
+
+        int i = 0;
+        // Iterate through the prop array
+        while ((i<sizeof(props_.props)) || gate_found)
+        {
+            if (isValidMarker(props_.props[i], RED))
+            {
+                temp_red = props_.props[i];
+                red_found = true;
+            }
+            else if (isValidMarker(props_.props[i], GREEN))
+            {
+                temp_green = props_.props[i];
+                green_found = true;
+            }
+
+            if (green_found && red_found)
+            {
+                if (isValidGate(temp_red, temp_green))
+                {
+                    red_marker = temp_red;
+                    green_marker = temp_green;
+                    gate_found == true;
+                }
+            }
+
+            i++;
+        }
+
+        return gate_found;
+    }
+
+
+    geometry_msgs::Point findMidpoint(prop_mapper::Prop marker1, prop_mapper::Prop marker2)
+    {
+        geometry_msgs::Point midpnt;
+        midpnt.x = (marker1.vector.x+marker2.vector.x)/2;
+        midpnt.y = (marker1.vector.y+marker2.vector.y)/2;
+        midpnt.z = 0;
+    }
+
+
+
+    /**
+     * TODO - remove this function and switch usage to the above
+    */
     geometry_msgs::Point findMidpoint(int gate) {
         // validates positions of props, then calculates midpoint, and returns
         // it as Point
@@ -227,7 +303,7 @@ private:
                 // if have two good props, ie. red on left, green on right, within 10 feet of each other, then go
 
                 ROS_INFO("start task.");
-                geometry_msgs::Point midpoint = findMidpoint(1);
+                geometry_msgs::Point midpoint = findMidpoint(1); // Grace comment - what if there is no gate 1 found?
 
                 setDestination(midpoint);
                 ROS_DEBUG_STREAM(TAG << "about to check if midpoint reached");
