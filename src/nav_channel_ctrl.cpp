@@ -74,11 +74,14 @@ public:
     */
     bool isValidMarker(prop_mapper::Prop marker, Colour colour)
     {
+        ROS_INFO_STREAM("in validMarker");
         bool valid = false;
-        if (marker.prop_label == "red_marker" && colour = Colour::RED) {
+        if (marker.prop_label == "Red Prop" && colour == 0) {
+            ROS_INFO_STREAM("red prop");
             valid = true;
         }
-        if (marker.prop_label == "green_marker" && colour = Colour::GREEN) {
+        if (marker.prop_label == "Green Prop" && colour == 1) {
+            ROS_INFO_STREAM("green prop");
             valid = true;
         }
 
@@ -114,16 +117,16 @@ public:
     double findPolarAngle(prop_mapper::Prop marker) {
         double angle;
         if (marker.vector.x > 0 && marker.vector.y > 0) {
-            angle = tan(y, x);
+            angle = atan2(marker.vector.y, marker.vector.x);
         }
         else if (marker.vector.x < 0 && marker.vector.y > 0) {
-            angle = tan(x, y) + M_PI_2;
+            angle = atan2(marker.vector.x, marker.vector.y) + M_PI_2;
         }
         else if (marker.vector.x < 0 && marker.vector.y < 0) {
-            angle = tan(y, x) + M_PI;
+            angle = atan2(marker.vector.y, marker.vector.x) + M_PI;
         }
         else {
-            angle = tan(x, y) + M_PI + M_PI_2;
+            angle = atan2(marker.vector.x, marker.vector.y) + M_PI + M_PI_2;
         }
 
         return angle;
@@ -131,6 +134,7 @@ public:
 
     bool findGate(int gate_to_find, prop_mapper::Prop &green_marker, prop_mapper::Prop &red_marker)
     {
+        ROS_DEBUG_STREAM(TAG << "pg1");
         prop_mapper::Prop temp_green;
         prop_mapper::Prop temp_red;
 
@@ -142,29 +146,38 @@ public:
         // Iterate through the prop array
         while ((i<sizeof(props_.props)) || gate_found)
         {
-            if (isValidMarker(props_.props[i], RED))
+            ROS_DEBUG_STREAM(TAG << "pg2");
+            bool x = isValidMarker(props_.props[i], NavChannel::RED);
+            bool y = isValidMarker(props_.props[i], NavChannel::GREEN);
+            if (x)
             {
+                ROS_DEBUG_STREAM(TAG << "pg2.1");
                 temp_red = props_.props[i];
                 red_found = true;
             }
-            else if (isValidMarker(props_.props[i], GREEN))
+            else if (y)
             {
+                ROS_DEBUG_STREAM(TAG << "pg2.2");
                 temp_green = props_.props[i];
                 green_found = true;
             }
 
             if (green_found && red_found)
             {
+                ROS_DEBUG_STREAM(TAG << "pg2.3");
                 if (isValidGate(temp_red, temp_green))
                 {
+                    ROS_DEBUG_STREAM(TAG << "pg2.4");
                     red_marker = temp_red;
                     green_marker = temp_green;
                     gate_found == true;
                 }
             }
+            ROS_DEBUG_STREAM(TAG << "end of while");
 
             i++;
         }
+        ROS_DEBUG_STREAM(TAG << "pg3, gate found = " << gate_found);
 
         return gate_found;
     }
@@ -326,8 +339,8 @@ private:
             ROS_DEBUG_STREAM(TAG << "ORANGE");
             // start task
             task_master::TaskStatus taskStatus;
-            taskStatus.status = task_master::TaskStatus::IN_PROGRESS;
-            task_status_.publish(taskStatus);
+            //taskStatus.status = task_master::TaskStatus::IN_PROGRESS; // seems redundant
+            //task_status_.publish(taskStatus);
 
             switch (status)
             {
@@ -351,7 +364,10 @@ private:
 
                 prop_mapper::Prop green_marker;
                 prop_mapper::Prop red_marker;
-                if (findGate(1, green_marker, red_marker)) {
+
+                bool isGate = findGate(1, green_marker, red_marker);
+                if (isGate) {
+                    ROS_DEBUG_STREAM(TAG << "GRAPE");
                     geometry_msgs::Point midpoint = findMidpoint(green_marker, red_marker);
 
                     setDestination(midpoint);
@@ -376,10 +392,8 @@ private:
             // should consider case where props are 100ft out, being out of lidar range
 
             case states::find_wp2: {
-                 ROS_DEBUG_STREAM(TAG << "PEAR");
+                ROS_DEBUG_STREAM(TAG << "PEAR");
                 ROS_DEBUG("at gate 1.");
-                geometry_msgs::Point midpoint = findMidpoint(2);
-                setDestination(midpoint);
                 
                 prop_mapper::Prop green_marker;
                 prop_mapper::Prop red_marker;
