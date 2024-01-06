@@ -2,6 +2,7 @@
 #include <task_master/TaskStatus.h>
 #include <task_master/TaskGoalPosition.h>
 #include <task_master/Task.h>
+#include <task_master/Waypoint.h>
 #include <string>
 #include <prop_mapper/PropArray.h>
 #include <geometry_msgs/PoseWithCovarianceStamped.h>
@@ -52,9 +53,9 @@ public:
         }
     }
 
-    void setDestination(geometry_msgs::Point midpoint) {
+    void setDestination(task_master::Waypoint midpoint) {
         // sets goal_pos and then publishes it
-        goal_pos_.point = midpoint;
+        goal_pos_.wp = midpoint;
         goal_pos_.task.current_task = 1; // sets task to nav_channel for message filtering
         // does this set orientation to (0,0,0,0), do we need to grab current orientation and set that to new orientation?
 
@@ -241,8 +242,8 @@ public:
         ROS_DEBUG("checking if reaching wp");
         // check to see it we are at the goal (within a set amount of error)
         bool atDestination = false;
-        if (current_pos_.pose.position.x < goal_pos_.point.x+error & current_pos_.pose.position.x > goal_pos_.point.x-error) {
-            if (current_pos_.pose.position.y < goal_pos_.point.y+error & current_pos_.pose.position.y > goal_pos_.point.y-error) {
+        if (current_pos_.pose.position.x < goal_pos_.wp.x+error & current_pos_.pose.position.x > goal_pos_.wp.x-error) {
+            if (current_pos_.pose.position.y < goal_pos_.wp.y+error & current_pos_.pose.position.y > goal_pos_.wp.y-error) {
                 atDestination = true;
             }
         }
