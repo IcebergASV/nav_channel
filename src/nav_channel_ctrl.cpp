@@ -74,7 +74,15 @@ public:
     */
     bool isValidMarker(prop_mapper::Prop marker, Colour colour)
     {
+        bool valid = false;
+        if (marker.prop_label == "red_marker" && colour = Colour::RED) {
+            valid = true;
+        }
+        if (marker.prop_label == "green_marker" && colour = Colour::GREEN) {
+            valid = true;
+        }
 
+        return valid;
     }
 
     /**
@@ -82,7 +90,43 @@ public:
     */
     bool isValidGate(prop_mapper::Prop red_marker, prop_mapper::Prop green_marker)
     {
+        bool valid = true;
+        double dist = sqrt(pow((red_marker.vector.x - green_marker.vector.x), 2) + pow((red_marker.vector.y - green_marker.vector.y), 2));
+        if (dist > gate_max_width) {
+            valid = false;
+        }
 
+        double red_polar_angle = findPolarAngle(red_marker);
+        double green_polar_angle = findPolarAngle(green_marker);
+
+        if (abs(green_polar_angle-red_polar_angle) > 180) {
+            if (red_polar_angle > green_polar_angle) {
+                valid = false;
+            }
+        }
+        else if (green_polar_angle > red_polar_angle) {
+            valid = false;
+        }
+
+        return valid;
+    }
+
+    double findPolarAngle(prop_mapper::Prop marker) {
+        double angle;
+        if (marker.vector.x > 0 && marker.vector.y > 0) {
+            angle = tan(y, x);
+        }
+        else if (marker.vector.x < 0 && marker.vector.y > 0) {
+            angle = tan(x, y) + M_PI_2;
+        }
+        else if (marker.vector.x < 0 && marker.vector.y < 0) {
+            angle = tan(y, x) + M_PI;
+        }
+        else {
+            angle = tan(x, y) + M_PI + M_PI_2;
+        }
+
+        return angle;
     }
 
     bool findGate(int gate_to_find, prop_mapper::Prop &green_marker, prop_mapper::Prop &red_marker)
@@ -127,7 +171,7 @@ public:
 
 
     // TODO - change name to "findMidpoint" after old findMindpoint removed
-    geometry_msgs::Point new_findMidpoint(prop_mapper::Prop marker1, prop_mapper::Prop marker2)
+    geometry_msgs::Point findMidpoint(prop_mapper::Prop marker1, prop_mapper::Prop marker2)
     {
         geometry_msgs::Point midpnt;
         midpnt.x = (marker1.vector.x+marker2.vector.x)/2;
@@ -140,7 +184,7 @@ public:
     /**
      * TODO - remove this function and switch usage to the above
     */
-    geometry_msgs::Point findMidpoint(int gate) {
+    geometry_msgs::Point old_findMidpoint(int gate) {
         // validates positions of props, then calculates midpoint, and returns
         // it as Point
         geometry_msgs::Point midpoint;
@@ -304,22 +348,28 @@ private:
                 // if have two good props, ie. red on left, green on right, within 10 feet of each other, then go
 
                 ROS_INFO("start task.");
-                geometry_msgs::Point midpoint = findMidpoint(1); // Grace comment - what if there is no gate 1 found?
 
-                setDestination(midpoint);
-                ROS_DEBUG_STREAM(TAG << "about to check if midpoint reached");
-                if(!isReached())
-                {
-                    ROS_DEBUG_STREAM(TAG << "Midpoint 1 not reached yet");
+                prop_mapper::Prop green_marker;
+                prop_mapper::Prop red_marker;
+                if (findGate(1, green_marker, red_marker)) {
+                    geometry_msgs::Point midpoint = findMidpoint(green_marker, red_marker);
+
                     setDestination(midpoint);
-                    ros::Rate rate(10);
-                    rate.sleep();
+                    ROS_DEBUG_STREAM(TAG << "about to check if midpoint reached");
+                    if(!isReached())
+                    {
+                        ROS_DEBUG_STREAM(TAG << "Midpoint 1 not reached yet");
+                        setDestination(midpoint);
+                        ros::Rate rate(10);
+                        rate.sleep();
+                    }
+                
+                    if (isReached()) {
+                        status = states::find_wp2;
+                        ROS_DEBUG_STREAM(TAG << "midpoint 1 reached");
+                    };
                 }
                 
-                if (isReached()) {
-                    status = states::find_wp2;
-                    ROS_DEBUG_STREAM(TAG << "midpoint 1 reached");
-                };
                 
                 }
                 break;
@@ -331,17 +381,26 @@ private:
                 geometry_msgs::Point midpoint = findMidpoint(2);
                 setDestination(midpoint);
                 
-                if(!isReached())
-                {
-                    setDestination(midpoint);
-                    ros::Rate rate(10);
-                    rate.sleep();
-                }
+                prop_mapper::Prop green_marker;
+                prop_mapper::Prop red_marker;
+                if (findGate(2, green_marker, red_marker)) {
+                    geometry_msgs::Point midpoint = findMidpoint(green_marker, red_marker);
 
-                if (isReached()) {
-                    ROS_DEBUG_STREAM(TAG << "midpoint 2 reached");
-                    status = states::complete;
-                };
+                    setDestination(midpoint);
+                    ROS_DEBUG_STREAM(TAG << "about to check if midpoint reached");
+                    if(!isReached())
+                    {
+                        ROS_DEBUG_STREAM(TAG << "Midpoint 1 not reached yet");
+                        setDestination(midpoint);
+                        ros::Rate rate(10);
+                        rate.sleep();
+                    }
+                
+                    if (isReached()) {
+                        status = states::find_wp2;
+                        ROS_DEBUG_STREAM(TAG << "midpoint 1 reached");
+                    };
+                }
             }
                 break;
 
