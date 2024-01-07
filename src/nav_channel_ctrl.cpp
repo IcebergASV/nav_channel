@@ -128,7 +128,7 @@ public:
 
 
     // TODO - change name to "findMidpoint" after old findMindpoint removed
-    geometry_msgs::Point new_findMidpoint(prop_mapper::Prop marker1, prop_mapper::Prop marker2)
+    task_master::Waypoint new_findMidpoint(prop_mapper::Prop marker1, prop_mapper::Prop marker2)
     {
         geometry_msgs::Point midpnt;
         midpnt.x = (marker1.vector.x+marker2.vector.x)/2;
@@ -141,10 +141,10 @@ public:
     /**
      * TODO - remove this function and switch usage to the above
     */
-    geometry_msgs::Point findMidpoint(int gate) {
+    task_master::Waypoint findMidpoint(int gate) {
         // validates positions of props, then calculates midpoint, and returns
         // it as Point
-        geometry_msgs::Point midpoint;
+        task_master::Waypoint midpoint;
 
 
         bool red = false;   // use two booleans to determine if props exist
@@ -305,7 +305,7 @@ private:
                 // if have two good props, ie. red on left, green on right, within 10 feet of each other, then go
 
                 ROS_INFO("start task.");
-                geometry_msgs::Point midpoint = findMidpoint(1); // Grace comment - what if there is no gate 1 found?
+                task_master::Waypoint midpoint = findMidpoint(1); // Grace comment - what if there is no gate 1 found?
 
                 setDestination(midpoint);
                 ROS_DEBUG_STREAM(TAG << "about to check if midpoint reached");
@@ -329,7 +329,7 @@ private:
             case states::find_wp2: {
                  ROS_DEBUG_STREAM(TAG << "PEAR");
                 ROS_DEBUG("at gate 1.");
-                geometry_msgs::Point midpoint = findMidpoint(2);
+                task_master::Waypoint midpoint = findMidpoint(2);
                 setDestination(midpoint);
                 
                 if(!isReached())
