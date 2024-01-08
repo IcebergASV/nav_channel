@@ -29,7 +29,8 @@ public:
         task_to_exec_ = nh_.subscribe("task_to_execute", 10, &NavChannel::navChannelCallback, this);
         
         // props will get the prop map and store it
-        prop_map_ = nh_.subscribe("/prop_array", 10, &NavChannel::propMapCallback, this);
+        //prop_map_ = nh_.subscribe("/prop_array", 10, &NavChannel::propMapCallback, this);
+        prop_map_ = nh_.subscribe("/props", 10, &NavChannel::propMapCallback, this);
 
         // global_position/local grabs position from mavros and stores it
         global_pos_ = nh_.subscribe(local_pose_topic_, 10, &NavChannel::globalPositionCallback, this);
@@ -76,12 +77,16 @@ public:
     {
         ROS_INFO_STREAM("in validMarker");
         bool valid = false;
-        if (marker.prop_label == "Red Prop" && colour == 0) {
+        if (marker.prop_label == "Red Prop" && colour == Colour::RED) {
             ROS_INFO_STREAM("red prop");
             valid = true;
         }
-        if (marker.prop_label == "Green Prop" && colour == 1) {
+        if (marker.prop_label == "Green Prop" && colour == Colour::GREEN) {
             ROS_INFO_STREAM("green prop");
+            valid = true;
+        }
+        int x = marker.part_of_gate;
+        if (x = 0) {
             valid = true;
         }
 
@@ -135,8 +140,10 @@ public:
     bool findGate(int gate_to_find, prop_mapper::Prop &green_marker, prop_mapper::Prop &red_marker)
     {
         ROS_DEBUG_STREAM(TAG << "pg1");
-        prop_mapper::Prop temp_green;
-        prop_mapper::Prop temp_red;
+        //prop_mapper::Prop temp_green;
+        //prop_mapper::Prop temp_red;
+        int temp_green;
+        int temp_red;
 
         bool green_found = false;
         bool red_found = false;
@@ -144,33 +151,40 @@ public:
 
         int i = 0;
         // Iterate through the prop array
-        while ((i<sizeof(props_.props)) || gate_found)
+        while ((i<sizeof(props_.props)) && !gate_found)
         {
             ROS_DEBUG_STREAM(TAG << "pg2");
-            bool x = isValidMarker(props_.props[i], NavChannel::RED);
-            bool y = isValidMarker(props_.props[i], NavChannel::GREEN);
+            if (gate_found == true) {
+                ROS_DEBUG_STREAM("gate found");
+            }
+            bool x = isValidMarker(props_.props[i], Colour::RED);
+            bool y = isValidMarker(props_.props[i], Colour::GREEN);
             if (x)
             {
                 ROS_DEBUG_STREAM(TAG << "pg2.1");
-                temp_red = props_.props[i];
+                //temp_red = props_.props[i];
+                temp_red = i;
                 red_found = true;
             }
             else if (y)
             {
                 ROS_DEBUG_STREAM(TAG << "pg2.2");
-                temp_green = props_.props[i];
+                //temp_green = props_.props[i];
+                temp_green = i;
                 green_found = true;
             }
 
             if (green_found && red_found)
             {
                 ROS_DEBUG_STREAM(TAG << "pg2.3");
-                if (isValidGate(temp_red, temp_green))
+                if (isValidGate(props_.props[temp_red], props_.props[temp_green]))
                 {
                     ROS_DEBUG_STREAM(TAG << "pg2.4");
-                    red_marker = temp_red;
-                    green_marker = temp_green;
-                    gate_found == true;
+                    red_marker = props_.props[temp_red];
+                    green_marker = props_.props[temp_green];
+                    gate_found = true;
+                    props_.props[temp_red].part_of_gate = 1;
+                    props_.props[temp_green].part_of_gate = 1;
                 }
             }
             ROS_DEBUG_STREAM(TAG << "end of while");
@@ -187,9 +201,22 @@ public:
     geometry_msgs::Point findMidpoint(prop_mapper::Prop marker1, prop_mapper::Prop marker2)
     {
         geometry_msgs::Point midpnt;
+        ROS_INFO_STREAM("m1 x = " << marker1.vector.x << ", m1 y = " << marker1.vector.y);
+        ROS_INFO_STREAM("m2 x = " << marker2.vector.x << ", m2 y = " << marker2.vector.y);
         midpnt.x = (marker1.vector.x+marker2.vector.x)/2;
         midpnt.y = (marker1.vector.y+marker2.vector.y)/2;
         midpnt.z = 0;
+
+        /**
+        double m1_x = marker1.vector.x;
+        double m1_y = marker1.vector.y;
+        double m2_x = marker2.vector.x;
+        double m2_y = marker2.vector.y;
+
+        midpnt.x = (m1_x+m2_x)/2;
+        midpnt.y = (m1_y+m2_y)/2;
+        */
+       return midpnt;
     }
 
 
