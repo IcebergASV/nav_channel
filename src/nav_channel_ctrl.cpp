@@ -19,8 +19,8 @@ public:
         private_nh_.param<double>("error", error, 1.0); // leniency for if we are at the gate
         private_nh_.param<double>("gate_max_dist", gate_max_dist, 8.0); // max distance for gate 1, determines if we are looking at the right gate, 8.0m is roughly 25ft, can make more accurate if needed.
         private_nh_.param<double>("gate_max_width", gate_max_width, 4.0); // max distance between two buoys for a gate, confirming we have the two correct ones. 4.0m is roughly 13ft, accounts for max gap and diameter.
-        private_nh_.param<std::string>("red_marker", red_marker, "red_marker");
-        private_nh_.param<std::string>("green_marker", green_marker, "red_marker");
+        //private_nh_.param<std::string>("red_marker", red_marker_str, "red_marker");
+        //private_nh_.param<std::string>("green_marker", green_marker_str, "red_marker");
 
         // ROS subscribers
         private_nh_.param<std::string>("local_pose_topic", local_pose_topic_, "/mavros/local_position/pose");
@@ -29,9 +29,8 @@ public:
         task_to_exec_ = nh_.subscribe("task_to_execute", 10, &NavChannel::navChannelCallback, this);
         
         // props will get the prop map and store it
-        //prop_map_ = nh_.subscribe("/prop_array", 10, &NavChannel::propMapCallback, this);
-        prop_map_ = nh_.subscribe("/props", 10, &NavChannel::propMapCallback, this);
-
+        prop_map_ = nh_.subscribe("/prop_array", 10, &NavChannel::propMapCallback, this);
+        
         // global_position/local grabs position from mavros and stores it
         global_pos_ = nh_.subscribe(local_pose_topic_, 10, &NavChannel::globalPositionCallback, this);
 
@@ -77,19 +76,14 @@ public:
     {
         ROS_INFO_STREAM("in validMarker");
         bool valid = false;
-        if (marker.prop_label == "Red Prop" && colour == Colour::RED) {
+        if (marker.prop_label == "red_marker"){//red_marker_str"){//} && colour == Colour::RED) {
             ROS_INFO_STREAM("red prop");
             valid = true;
         }
-        if (marker.prop_label == "Green Prop" && colour == Colour::GREEN) {
+        if (marker.prop_label == "green_marker"){//green_marker_str){// && colour == Colour::GREEN) {
             ROS_INFO_STREAM("green prop");
             valid = true;
         }
-        int x = marker.part_of_gate;
-        if (x = 0) {
-            valid = true;
-        }
-
         return valid;
     }
 
@@ -98,6 +92,7 @@ public:
     */
     bool isValidGate(prop_mapper::Prop red_marker, prop_mapper::Prop green_marker)
     {
+        ROS_DEBUG_STREAM(TAG << "isValidGate called");
         bool valid = true;
         double dist = sqrt(pow((red_marker.vector.x - green_marker.vector.x), 2) + pow((red_marker.vector.y - green_marker.vector.y), 2));
         if (dist > gate_max_width) {
@@ -115,7 +110,7 @@ public:
         else if (green_polar_angle > red_polar_angle) {
             valid = false;
         }
-
+        ROS_DEBUG_STREAM(TAG << "Gate validity: " << valid);
         return valid;
     }
 
@@ -151,14 +146,18 @@ public:
 
         int i = 0;
         // Iterate through the prop array
-        while ((i<sizeof(props_.props)) && !gate_found)
+        while ((i<props_.props.size()) && !gate_found)
         {
             ROS_DEBUG_STREAM(TAG << "pg2");
             if (gate_found == true) {
                 ROS_DEBUG_STREAM("gate found");
             }
+            ROS_DEBUG_STREAM(TAG << "CARROT");
+            //ROS_DEBUG_STREAM(TAG << props_.props.size());
             bool x = isValidMarker(props_.props[i], Colour::RED);
+            ROS_DEBUG_STREAM(TAG << "Broccoli");
             bool y = isValidMarker(props_.props[i], Colour::GREEN);
+            ROS_DEBUG_STREAM(TAG << "tomato");
             if (x)
             {
                 ROS_DEBUG_STREAM(TAG << "pg2.1");
@@ -173,7 +172,7 @@ public:
                 temp_green = i;
                 green_found = true;
             }
-
+////
             if (green_found && red_found)
             {
                 ROS_DEBUG_STREAM(TAG << "pg2.3");
@@ -183,8 +182,6 @@ public:
                     red_marker = props_.props[temp_red];
                     green_marker = props_.props[temp_green];
                     gate_found = true;
-                    props_.props[temp_red].part_of_gate = 1;
-                    props_.props[temp_green].part_of_gate = 1;
                 }
             }
             ROS_DEBUG_STREAM(TAG << "end of while");
@@ -250,7 +247,7 @@ public:
                     // using 8m as roughly 25ft
                     // gate 1 should be within 25ft, gate 2 should be at least 25ft away
                         ROS_INFO("here 3");
-                        if (props_.props[i].prop_label == red_marker) {
+                        if (props_.props[i].prop_label == red_marker_str) {
                             if (green) {
                                 ROS_INFO("here 4");
                                 float dist = sqrt(pow(green_prop.vector.x - props_.props[i].vector.x, 2) + pow(green_prop.vector.y - props_.props[i].vector.y, 2));
@@ -267,7 +264,7 @@ public:
                             }
                         }
 
-                        if (props_.props[i].prop_label == green_marker) {
+                        if (props_.props[i].prop_label == green_marker_str) {
                             if (red) {
                                 ROS_INFO("here 6");
                                 float dist = sqrt(pow(red_prop.vector.x - props_.props[i].vector.x, 2) + pow(red_prop.vector.y - props_.props[i].vector.y, 2));
@@ -355,8 +352,8 @@ private:
     double error;
     double gate_max_dist;
     double gate_max_width;
-    std::string red_marker;
-    std::string green_marker;
+    std::string red_marker_str = "red_marker";
+    std::string green_marker_str = "green_marker";
     enum states {not_started, find_wp1, moving_to_wp1, find_wp2, moving_to_wp2, complete};
     states status = states::not_started;
 
@@ -379,10 +376,12 @@ private:
                 taskStatus.task.current_task = task_master::Task::NAVIGATION_CHANNEL;
                 task_status_.publish(taskStatus);
 
-                status = states::find_wp1;
+                if (props_.props.size() >= 2)
+                {
+                    status = states::find_wp1;
                 }
                 break;
-            
+            }
             case states::find_wp1: {
                 ROS_DEBUG_STREAM(TAG << "Peach");
                 // if have two good props, ie. red on left, green on right, within 10 feet of each other, then go
