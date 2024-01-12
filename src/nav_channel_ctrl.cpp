@@ -80,17 +80,16 @@ private:
         BLUE
     };
 
-    enum States {not_started, find_wp1, moving_to_wp1, find_wp2, moving_to_wp2, complete};
+    enum States {NOT_STARTED, FIND_GATE1, MOVE_TO_GATE1, FIND_GATE2, MOVE_TO_GATE2, COMPLETE};
 
-    States status = States::not_started;
+    States status = States::NOT_STARTED;
 
-    void setDestination(geometry_msgs::Point midpoint) 
+    void setDestination() 
     {
         ROS_DEBUG_STREAM(TAG << "setDestination() called");
-        goal_pos_.point = midpoint;
         goal_pos_.task.current_task = task_master::Task::NAVIGATION_CHANNEL; 
         
-        ROS_INFO_STREAM(TAG << "Midpoint set to x: " << midpoint.x << ", y: "<< midpoint.y);
+        ROS_INFO_STREAM(TAG << "Midpoint set to x: " << goal_pos_.point.x << ", y: "<< goal_pos_.point.y);
 
         task_goal_position_.publish(goal_pos_);
     }
@@ -238,7 +237,7 @@ private:
             task_master::TaskStatus taskStatus;
             switch (status)
             {
-            case States::not_started: 
+            case States::NOT_STARTED: 
             {
                 ROS_DEBUG_STREAM(TAG << "waiting for at least 2 markers");
 
@@ -248,74 +247,80 @@ private:
                 if (props_.props.size() >= 2)
                 {
                     ROS_INFO_STREAM(TAG << "At least 2 markers detected, moving on to find gate 1");
-                    status = States::find_wp1;
+                    status = States::FIND_GATE1;
                 }
                 break;
             }
-            case States::find_wp1: {
+            case States::FIND_GATE1: {
                 // if have two good props, ie. red on left, green on right, within acceptable distance of each other, then go
 
                 ROS_INFO_STREAM(TAG << "Looking for the 1st gate");
-
-                prop_mapper::Prop green_marker;
-                prop_mapper::Prop red_marker;
+                
+                prop_mapper::Prop green_marker; // TODO change to Prop ID
+                prop_mapper::Prop red_marker; // TODO change to Prop ID
                 
                 if (findGate(green_marker, red_marker)) 
                 {
-                    geometry_msgs::Point midpoint = findMidpoint(green_marker, red_marker);
-                    setDestination(midpoint);
-                    ROS_DEBUG_STREAM(TAG << "about to check if midpoint reached");
-                    if(!isReached())
-                    {
-                        ROS_DEBUG_STREAM(TAG << "Midpoint 1 not reached yet");
-                        setDestination(midpoint);
-                        ros::Rate rate(10);
-                        rate.sleep();
-                    }
-                
-                    if (isReached()) {
-                        status = States::find_wp2;
-                        ROS_DEBUG_STREAM(TAG << "midpoint 1 reached");
-                    };
+                    goal_pos_.point = findMidpoint(green_marker, red_marker);
+                    status = States::MOVE_TO_GATE1;
                 }
-                
-                
+                }
+                break;
+
+            case States::MOVE_TO_GATE1: {
+                ROS_INFO_STREAM(TAG << "Moving to first gate");
+                if(!isReached())
+                {
+                    ROS_DEBUG_STREAM(TAG << "Midpoint 1 not reached yet");
+                    setDestination();
+                    ros::Rate rate(10);
+                    rate.sleep();
+                }
+            
+                if (isReached()) {
+                    status = States::FIND_GATE2;
+                    ROS_DEBUG_STREAM(TAG << "Midpoint 1 reached");
+                };
                 }
                 break;
             // should consider case where props are 100ft out, being out of lidar range
 
-            case States::find_wp2: {
-                ROS_DEBUG_STREAM(TAG << "PEAR");
-                ROS_DEBUG_STREAM("at gate 1.");
-                
-                prop_mapper::Prop green_marker;
-                prop_mapper::Prop red_marker;
-                if (findGate(green_marker, red_marker)) {
-                    geometry_msgs::Point midpoint = findMidpoint(green_marker, red_marker);
+            case States::FIND_GATE2: {
 
-                    setDestination(midpoint);
-                    ROS_DEBUG_STREAM(TAG << "about to check if midpoint reached");
-                    if(!isReached())
-                    {
-                        ROS_DEBUG_STREAM(TAG << "Midpoint 1 not reached yet");
-                        setDestination(midpoint);
-                        ros::Rate rate(10);
-                        rate.sleep();
-                    }
+                ROS_INFO_STREAM(TAG << "Looking for the 2nd gate");
                 
-                    if (isReached()) {
-                        status = States::find_wp2;
-                        ROS_DEBUG_STREAM(TAG << "midpoint 1 reached");
-                    };
+                prop_mapper::Prop green_marker; // TODO change to Prop ID
+                prop_mapper::Prop red_marker; // TODO change to Prop ID
+                
+                if (findGate(green_marker, red_marker)) 
+                {
+                    goal_pos_.point = findMidpoint(green_marker, red_marker);
+                    status = States::MOVE_TO_GATE2;
                 }
-            }
+                }
                 break;
 
-            case States::complete: {
-                ROS_DEBUG_STREAM(TAG << "hfhhhhhhh");
+            case States::MOVE_TO_GATE2: {
+
+                ROS_INFO_STREAM(TAG << "Moving to 2nd gate");
+                if(!isReached())
+                {
+                    ROS_DEBUG_STREAM(TAG << "Midpoint 2 not reached yet");
+                    setDestination();
+                    ros::Rate rate(10);
+                    rate.sleep();
+                }
+            
+                if (isReached()) {
+                    status = States::COMPLETE;
+                    ROS_DEBUG_STREAM(TAG << "Midpoint 2 reached");
+                };
+                }
+                break;
+
+            case States::COMPLETE: {
+                ROS_INFO_STREAM(TAG << "Navigation Channel Complete");
                 taskStatus.status = task_master::TaskStatus::COMPLETE;
-                ROS_DEBUG_STREAM("at gate 2");
-                ROS_DEBUG_STREAM("TASK COMPLETE");
                 task_status_.publish(taskStatus);
                 }
                 break;
