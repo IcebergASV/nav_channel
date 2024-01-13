@@ -13,7 +13,7 @@
 
 class NavChannel {
 public:
-    NavChannel(): nh_(""), private_nh_("~")
+    NavChannel(): nh_(""), private_nh_("~"), green_id_(-1), red_id_(-1)
     {
         // ROS parameters
         private_nh_.param<double>("error", wp_error_tolerance, 1.0); // Tolerance radius for determining if asv reached gate waypoint
@@ -73,6 +73,10 @@ private:
     std::string red_marker_str;
     std::string green_marker_str;
 
+    // Marker IDs
+    int green_id_;
+    int red_id_;
+
     enum Colour 
     {
         RED,
@@ -98,11 +102,11 @@ private:
     {
         ROS_DEBUG_STREAM(TAG << "isValidMarker() called");
         bool valid = false;
-        if (marker.prop_label == red_marker_str && colour == Colour::RED) {
+        if (marker.prop_label == red_marker_str && colour == Colour::RED && marker.id != red_id_) {
             ROS_INFO_STREAM(TAG << "Valid red marker found");
             valid = true;
         }
-        if (marker.prop_label == green_marker_str && colour == Colour::GREEN) {
+        if (marker.prop_label == green_marker_str && colour == Colour::GREEN && marker.id != green_id_) {
             ROS_INFO_STREAM(TAG << "Valid green marker found");
             valid = true;
         }
@@ -262,6 +266,8 @@ private:
                 if (findGate(green_marker, red_marker)) 
                 {
                     goal_pos_.point = findMidpoint(green_marker, red_marker);
+                    green_id_ = green_marker.id;
+                    red_id_ = red_marker.id;
                     status = States::MOVE_TO_GATE1;
                 }
                 }
