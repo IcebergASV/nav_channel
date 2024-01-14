@@ -147,11 +147,6 @@ target_link_libraries(fake_prop_array
 #   src/${PROJECT_NAME}/nav_channel.cpp
 # )
 
-add_library(waypointSenderLib
-  lib/waypointSenderLib.cpp
-  include/waypointSenderLib.h
-)
-
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
