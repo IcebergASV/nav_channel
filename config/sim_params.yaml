@@ -2,6 +2,7 @@
 wp_error_tolerance: 3 # acceptable distance for error when determining if we are at the goal, in meters.
 gate_max_dist: 100.0 # max distance for gate 1, minimum distance for gate 2.
 gate_max_width: 100.0 # max gap between buoys, accounts for diameter of buoys as well.
+dist_past_gate: 5 # how far the asv will travel past the second gate for the task to be considered complete
 
 red_marker: "red_marker"
 green_marker: "green_marker"
