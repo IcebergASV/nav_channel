@@ -19,6 +19,7 @@ public:
         private_nh_.param<double>("error", wp_error_tolerance, 1.0); // Tolerance radius for determining if asv reached gate waypoint
         private_nh_.param<double>("gate_max_dist", gate_max_dist, 8.0); // max distance between asv and gate 1 at start, determines if we are looking at the right gate
         private_nh_.param<double>("gate_max_width", gate_max_width, 4.0); // max distance between two buoys in gate, accounts for max gap and diameter
+        private_nh_.param<double>("dist_past_gate", dist_past_gate, 2.0);
         private_nh_.param<std::string>("red_marker", red_marker_str, "red_marker");
         private_nh_.param<std::string>("green_marker", green_marker_str, "green_marker");
 
@@ -70,6 +71,7 @@ private:
     double wp_error_tolerance;
     double gate_max_dist;
     double gate_max_width;
+    double dist_past_gate;
     std::string red_marker_str;
     std::string green_marker_str;
 
@@ -117,26 +119,26 @@ private:
     {
         ROS_DEBUG_STREAM(TAG << "isValidGate() called");
         bool valid = true;
-        double dist = sqrt(pow((red_marker.vector.x - green_marker.vector.x), 2) + pow((red_marker.vector.y - green_marker.vector.y), 2));
+        double dist = sqrt(pow((red_marker.point.x - green_marker.point.x), 2) + pow((red_marker.point.y - green_marker.point.y), 2));
         
         if (dist > gate_max_width) {
             valid = false;
             ROS_DEBUG_STREAM(TAG << "Markers too far apart for valid gate"); // TODO add reference to prop IDs
         }
 
-        double red_polar_angle = findPolarAngle(red_marker);
-        double green_polar_angle = findPolarAngle(green_marker);
-
-        if (abs(green_polar_angle-red_polar_angle) > 180) {
-            if (red_polar_angle > green_polar_angle) {
-                valid = false;
-                ROS_DEBUG_STREAM(TAG << "Red marker NOT to the right of green marker -> Invalid gate");
-            }
-        }
-        else if (green_polar_angle > red_polar_angle) {
-            valid = false;
-            ROS_DEBUG_STREAM(TAG << "Red marker NOT to the right of green marker -> Invalid gate");
-        }
+        //double red_polar_angle = findPolarAngle(red_marker); TODO FIX
+        //double green_polar_angle = findPolarAngle(green_marker);
+//
+        //if (abs(green_polar_angle-red_polar_angle) > 180) {
+        //    if (red_polar_angle > green_polar_angle) {
+        //        valid = false;
+        //        ROS_DEBUG_STREAM(TAG << "Red marker NOT to the right of green marker -> Invalid gate");
+        //    }
+        //}
+        //else if (green_polar_angle > red_polar_angle) {
+        //    valid = false;
+        //    ROS_DEBUG_STREAM(TAG << "Red marker NOT to the right of green marker -> Invalid gate");
+        //}
         if (valid)
         {
             ROS_INFO_STREAM(TAG << "Valid gate Identified"); // TODO add references to props IDs
@@ -144,20 +146,20 @@ private:
         return valid;
     }
 
-    double findPolarAngle(prop_mapper::Prop marker) {
+    double findPolarAngle(prop_mapper::Prop marker) {// TODO remove if nto needed
         ROS_DEBUG_STREAM(TAG << "findPolarAngle() called");
         double angle;
-        if (marker.vector.x > 0 && marker.vector.y > 0) {
-            angle = atan2(marker.vector.y, marker.vector.x);
+        if (marker.point.x > 0 && marker.point.y > 0) {
+            angle = atan2(marker.point.y, marker.point.x);
         }
-        else if (marker.vector.x < 0 && marker.vector.y > 0) {
-            angle = atan2(marker.vector.x, marker.vector.y) + M_PI_2;
+        else if (marker.point.x < 0 && marker.point.y > 0) {
+            angle = atan2(marker.point.x, marker.point.y) + M_PI_2;
         }
-        else if (marker.vector.x < 0 && marker.vector.y < 0) {
-            angle = atan2(marker.vector.y, marker.vector.x) + M_PI;
+        else if (marker.point.x < 0 && marker.point.y < 0) {
+            angle = atan2(marker.point.y, marker.point.x) + M_PI;
         }
         else {
-            angle = atan2(marker.vector.x, marker.vector.y) + M_PI + M_PI_2;
+            angle = atan2(marker.point.x, marker.point.y) + M_PI + M_PI_2;
         }
         ROS_DEBUG_STREAM(TAG << "polar angle: " << angle);
         return angle;
@@ -206,13 +208,56 @@ private:
         return gate_found;
     }
 
+    geometry_msgs::Point translatePoint(geometry_msgs::Point point, double x_trans, double y_trans )
+    {
+        point.x = point.x + x_trans;
+        point.y = point.y + y_trans;
+        return point;        
+    }
+
+    geometry_msgs::Point rotatePoint(geometry_msgs::Point point, double rot_angle )
+    {
+        double radius = std::sqrt(std::pow(point.x, 2) + std::pow(point.y, 2));
+        double angle = std::atan2(point.y, point.x);
+
+        angle += rot_angle;
+
+        point.x = radius * std::cos(angle);
+        point.y = radius * std::sin(angle);
+
+        return point;
+        
+    }
+    
+    geometry_msgs::Point findEndpoint(geometry_msgs::Point marker_1, geometry_msgs::Point midpnt)
+    {
+        ROS_DEBUG_STREAM(TAG << "findEndpoint() called");
+        // Translate the a marker so we can get the rotation angle 
+        marker_1 = translatePoint(marker_1, -midpnt.x, -midpnt.y);
+
+        // Get rotation angle to align marker on x axis
+        double angle = std::atan2(marker_1.y, marker_1.x);// get the amount to rotate by
+        
+        geometry_msgs::Point endpnt;
+        endpnt.x = 0;
+        endpnt.y = dist_past_gate;
+
+        endpnt = rotatePoint(endpnt, angle);
+
+        endpnt = translatePoint(endpnt, midpnt.x, midpnt.y);
+
+        ROS_INFO_STREAM(TAG << "Enpoint set " << dist_past_gate << " past the last gate at x: " << endpnt.x << ", y: " << endpnt.y );
+
+        return endpnt;
+    }
+
     geometry_msgs::Point findMidpoint(prop_mapper::Prop marker1, prop_mapper::Prop marker2)
     {
         geometry_msgs::Point midpnt;
-        ROS_DEBUG_STREAM(TAG << "m1 x = " << marker1.vector.x << ", m1 y = " << marker1.vector.y);
-        ROS_DEBUG_STREAM(TAG << "m2 x = " << marker2.vector.x << ", m2 y = " << marker2.vector.y);
-        midpnt.x = (marker1.vector.x+marker2.vector.x)/2;
-        midpnt.y = (marker1.vector.y+marker2.vector.y)/2;
+        ROS_DEBUG_STREAM(TAG << "m1 x = " << marker1.point.x << ", m1 y = " << marker1.point.y);
+        ROS_DEBUG_STREAM(TAG << "m2 x = " << marker2.point.x << ", m2 y = " << marker2.point.y);
+        midpnt.x = (marker1.point.x+marker2.point.x)/2;
+        midpnt.y = (marker1.point.y+marker2.point.y)/2;
         midpnt.z = 0;
 
         ROS_DEBUG_STREAM(TAG << "Midpoint x: " << midpnt.x << ", y: " << midpnt);
@@ -300,7 +345,8 @@ private:
                 
                 if (findGate(green_marker, red_marker)) 
                 {
-                    goal_pos_.point = findMidpoint(green_marker, red_marker);
+                    geometry_msgs::Point midpnt = findMidpoint(green_marker, red_marker);
+                    goal_pos_.point = findEndpoint(green_marker.point, midpnt); // extends the midpoint to actually pass through the gate
                     status = States::MOVE_TO_GATE2;
                 }
                 }
@@ -339,7 +385,7 @@ private:
     }
 
     // prop_array is a list of props, which are themselves a
-    // msg with a string (prop_label) and a Vector3 position
+    // msg with a string (prop_label) and a Point position
     void propMapCallback(const prop_mapper::PropArray msg) {
         props_ = msg;
     }
