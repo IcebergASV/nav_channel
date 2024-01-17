@@ -126,19 +126,19 @@ private:
             ROS_DEBUG_STREAM(TAG << "Markers too far apart for valid gate"); // TODO add reference to prop IDs
         }
 
-        double red_polar_angle = findPolarAngle(red_marker);
-        double green_polar_angle = findPolarAngle(green_marker);
-
-        if (abs(green_polar_angle-red_polar_angle) > 180) {
-            if (red_polar_angle > green_polar_angle) {
-                valid = false;
-                ROS_DEBUG_STREAM(TAG << "Red marker NOT to the right of green marker -> Invalid gate");
-            }
-        }
-        else if (green_polar_angle > red_polar_angle) {
-            valid = false;
-            ROS_DEBUG_STREAM(TAG << "Red marker NOT to the right of green marker -> Invalid gate");
-        }
+        //double red_polar_angle = findPolarAngle(red_marker); TODO FIX
+        //double green_polar_angle = findPolarAngle(green_marker);
+//
+        //if (abs(green_polar_angle-red_polar_angle) > 180) {
+        //    if (red_polar_angle > green_polar_angle) {
+        //        valid = false;
+        //        ROS_DEBUG_STREAM(TAG << "Red marker NOT to the right of green marker -> Invalid gate");
+        //    }
+        //}
+        //else if (green_polar_angle > red_polar_angle) {
+        //    valid = false;
+        //    ROS_DEBUG_STREAM(TAG << "Red marker NOT to the right of green marker -> Invalid gate");
+        //}
         if (valid)
         {
             ROS_INFO_STREAM(TAG << "Valid gate Identified"); // TODO add references to props IDs
@@ -146,7 +146,7 @@ private:
         return valid;
     }
 
-    double findPolarAngle(prop_mapper::Prop marker) {
+    double findPolarAngle(prop_mapper::Prop marker) {// TODO remove if nto needed
         ROS_DEBUG_STREAM(TAG << "findPolarAngle() called");
         double angle;
         if (marker.point.x > 0 && marker.point.y > 0) {
@@ -231,6 +231,7 @@ private:
     
     geometry_msgs::Point findEndpoint(geometry_msgs::Point marker_1, geometry_msgs::Point midpnt)
     {
+        ROS_DEBUG_STREAM(TAG << "findEndpoint() called");
         // Translate the a marker so we can get the rotation angle 
         marker_1 = translatePoint(marker_1, -midpnt.x, -midpnt.y);
 
@@ -244,6 +245,8 @@ private:
         endpnt = rotatePoint(endpnt, angle);
 
         endpnt = translatePoint(endpnt, midpnt.x, midpnt.y);
+
+        ROS_INFO_STREAM(TAG << "Enpoint set " << dist_past_gate << " past the last gate at x: " << endpnt.x << ", y: " << endpnt.y );
 
         return endpnt;
     }
