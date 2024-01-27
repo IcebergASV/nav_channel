@@ -251,17 +251,42 @@ private:
         return endpnt;
     }
 
-    geometry_msgs::Point findMidpoint(prop_mapper::Prop marker1, prop_mapper::Prop marker2)
+    bool findMidpoint(prop_mapper::Prop marker1, prop_mapper::Prop marker2, geometry_msgs::Point &midpnt)
     {
-        geometry_msgs::Point midpnt;
+        // geometry_msgs::Point midpnt;
         ROS_DEBUG_STREAM(TAG << "m1 x = " << marker1.point.x << ", m1 y = " << marker1.point.y);
         ROS_DEBUG_STREAM(TAG << "m2 x = " << marker2.point.x << ", m2 y = " << marker2.point.y);
         midpnt.x = (marker1.point.x+marker2.point.x)/2;
         midpnt.y = (marker1.point.y+marker2.point.y)/2;
         midpnt.z = 0;
 
-        ROS_DEBUG_STREAM(TAG << "Midpoint x: " << midpnt.x << ", y: " << midpnt);
-        return midpnt;
+        if (checkLeftRight(midpnt, marker1, marker2)) {
+            ROS_DEBUG_STREAM(TAG << "Midpoint x: " << midpnt.x << ", y: " << midpnt);
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+
+    bool checkLeftRight(geometry_msgs::Point mid, prop_mapper::Prop green, prop_mapper::Prop red) {
+        double delta_x = current_pos_.pose.position.x;
+        double delta_y = current_pos_.pose.position.y;
+        double mid_x = mid.x - delta_x;
+        double mid_y = mid.y - delta_y;
+        double green_x = green.point.x - delta_x;
+        double green_y = green.point.y - delta_y;
+        double red_x = red.point.x - delta_x;
+        double red_y = red.point.y - delta_y;
+        double angle = std::atan2(mid_y, mid_x);
+        green_y = green_x * std::sin(angle) + green_y * std::cos(angle);
+        red_y = red_x * std::sin(angle) + red_y * std::cos(angle);
+        if (red_y >= 0 && green_y < 0) {
+            return true;
+        }
+        else {
+            return false;
+        }
     }
 
     bool isReached() {
@@ -310,10 +335,13 @@ private:
                 
                 if (findGate(green_marker, red_marker)) 
                 {
-                    goal_pos_.point = findMidpoint(green_marker, red_marker);
-                    green_id_ = green_marker.id;
-                    red_id_ = red_marker.id;
-                    status = States::MOVE_TO_GATE1;
+                    geometry_msgs::Point midpnt;
+                    if(findMidpoint(green_marker, red_marker, midpnt)) {
+                        goal_pos_.point = midpnt;
+                        green_id_ = green_marker.id;
+                        red_id_ = red_marker.id;
+                        status = States::MOVE_TO_GATE1;
+                    }
                 }
                 }
                 break;
@@ -345,9 +373,11 @@ private:
                 
                 if (findGate(green_marker, red_marker)) 
                 {
-                    geometry_msgs::Point midpnt = findMidpoint(green_marker, red_marker);
-                    goal_pos_.point = findEndpoint(green_marker.point, midpnt); // extends the midpoint to actually pass through the gate
-                    status = States::MOVE_TO_GATE2;
+                    geometry_msgs::Point midpnt;
+                    if (findMidpoint(green_marker, red_marker, midpnt)) {
+                        goal_pos_.point = findEndpoint(green_marker.point, midpnt); // extends the midpoint to actually pass through the gate
+                        status = States::MOVE_TO_GATE2;
+                    }
                 }
                 }
                 break;
