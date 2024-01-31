@@ -282,10 +282,12 @@ private:
         green_y = green_x * std::sin(angle) + green_y * std::cos(angle);
         red_y = red_x * std::sin(angle) + red_y * std::cos(angle);
         if (red_y >= 0 && green_y < 0) {
+            ROS_DEBUG_STREAM(TAG << "Correct left and right buoys detected");
             return true;
         }
         else {
             return false;
+            ROS_DEBUG_STREAM(TAG << "Incorrect left and right buoys detected");
         }
     }
 
