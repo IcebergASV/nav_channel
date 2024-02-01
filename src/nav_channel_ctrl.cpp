@@ -36,7 +36,7 @@ public:
         // ROS publishers
 
         // publishes task progress to /task_status
-        task_status_ = nh_.advertise<task_master::TaskStatus>("task_status", 10);
+        pub_task_status_ = nh_.advertise<task_master::TaskStatus>("task_status", 10);
 
         // publishes desired positions to /task_goal_position to move asv
         task_goal_position_ = nh_.advertise<task_master::TaskGoalPosition>("task_goal_position", 10);
@@ -50,6 +50,12 @@ public:
         }
     }
 
+    void setInitialStatus()
+    {
+        task_status_.task.current_task = task_master::Task::NAVIGATION_CHANNEL; 
+        task_status_.status = task_master::TaskStatus::NOT_STARTED;
+    }
+
 private:
 
     ros::NodeHandle nh_;
@@ -57,8 +63,9 @@ private:
     ros::Subscriber task_to_exec_;
     ros::Subscriber prop_map_;
     ros::Subscriber global_pos_;
-    ros::Publisher task_status_;
+    ros::Publisher pub_task_status_;
     ros::Publisher task_goal_position_;
+    task_master::TaskStatus task_status_;
 
     std::string local_pose_topic_;
 
@@ -281,17 +288,15 @@ private:
     }
 
     void navChannelCallback(const task_master::Task msg) {
-
         if(msg.current_task == task_master::Task::NAVIGATION_CHANNEL) {
-            task_master::TaskStatus taskStatus;
+            
             switch (status)
             {
             case States::NOT_STARTED: 
             {
                 ROS_DEBUG_STREAM(TAG << "waiting for at least 2 markers");
 
-                taskStatus.status = task_master::TaskStatus::IN_PROGRESS;
-                taskStatus.task.current_task = task_master::Task::NAVIGATION_CHANNEL;
+                task_status_.status = task_master::TaskStatus::IN_PROGRESS;
 
                 if (props_.props.size() >= 2)
                 {
@@ -372,16 +377,17 @@ private:
 
             case States::COMPLETE: {
                 ROS_INFO_STREAM(TAG << "Navigation Channel Complete");
-                taskStatus.status = task_master::TaskStatus::COMPLETE;
-                task_status_.publish(taskStatus);
+                task_status_.status = task_master::TaskStatus::COMPLETE;
                 }
                 break;
 
             default:
                 break;
             }
-            task_status_.publish(taskStatus);
+            
         }
+        pub_task_status_.publish(task_status_);
+    
     }
 
     // prop_array is a list of props, which are themselves a
@@ -402,6 +408,8 @@ int main(int argc, char** argv) {
         ros::console::notifyLoggerLevelsChanged();
 
     NavChannel nav_channel;
+
+    nav_channel.setInitialStatus();
 
     nav_channel.spin();
 
