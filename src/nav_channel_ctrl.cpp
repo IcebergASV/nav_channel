@@ -270,26 +270,30 @@ private:
     }
 
     bool checkLeftRight(geometry_msgs::Point mid, prop_mapper::Prop green, prop_mapper::Prop red) {
-        double delta_x = current_pos_.pose.position.x;
-        double delta_y = current_pos_.pose.position.y;
-        double mid_x = mid.x - delta_x;
-        double mid_y = mid.y - delta_y;
-        double green_x = green.point.x - delta_x;
-        double green_y = green.point.y - delta_y;
-        double red_x = red.point.x - delta_x;
-        double red_y = red.point.y - delta_y;
-        double angle = std::atan2(mid_y, mid_x);
-        green_y = green_x * std::sin(angle) + green_y * std::cos(angle);
-        red_y = red_x * std::sin(angle) + red_y * std::cos(angle);
-        ROS_DEBUG_STREAM(TAG << "Green rotated y = " << green_y << ", Red rotated y = " << red_y);
-        if (red_y >= 0 && green_y < 0) {
-            ROS_DEBUG_STREAM(TAG << "Correct left and right buoys detected");
-            return true;
-        }
-        else {
-            ROS_DEBUG_STREAM(TAG << "Incorrect left and right buoys detected");
-            return false;
-        }
+        // double delta_x = current_pos_.pose.position.x;
+        // double delta_y = current_pos_.pose.position.y;
+        // double mid_x = mid.x - delta_x;
+        // double mid_y = mid.y - delta_y;
+        // double green_x = green.point.x - delta_x;
+        // double green_y = green.point.y - delta_y;
+        // double red_x = red.point.x - delta_x;
+        // double red_y = red.point.y - delta_y;
+        // double angle = std::atan2(mid_y, mid_x);
+        // ROS_DEBUG_STREAM(TAG << "rotation angle = " << angle);
+        // green_y = green_x * std::sin(angle) + green_y * std::cos(angle);
+        // red_y = red_x * std::sin(angle) + red_y * std::cos(angle);
+        // ROS_DEBUG_STREAM(TAG << "Green rotated y = " << green_y << ", Red rotated y = " << red_y);
+        // if (red_y >= 0 && green_y < 0) {
+            // ROS_DEBUG_STREAM(TAG << "Correct left and right buoys detected");
+            // return true;
+        // }
+        // else {
+            // ROS_DEBUG_STREAM(TAG << "Incorrect left and right buoys detected");
+            // return false;
+        // }
+
+        // TODO: fix left-right checking, issue seems to be with the calculated angle
+        return true;
     }
 
     bool isReached() {
