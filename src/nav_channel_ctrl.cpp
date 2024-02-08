@@ -21,6 +21,7 @@ public:
         private_nh_.param<double>("gate_max_width", gate_max_width, 4.0); // max distance between two buoys in gate, accounts for max gap and diameter
         private_nh_.param<double>("dist_past_second_gate", dist_past_second_gate, 2.0);
         private_nh_.param<double>("dist_to_est_gate_2", dist_to_est_gate_2, 2.0);
+        private_nh_.param<double>("dist_from_gate", dist_from_gate, 1.0);
         private_nh_.param<std::string>("red_marker", red_marker_str, "red_marker");
         private_nh_.param<std::string>("green_marker", green_marker_str, "green_marker");
 
@@ -84,6 +85,7 @@ private:
     double gate_max_width;
     double dist_past_second_gate;
     double dist_to_est_gate_2;
+    double dist_from_gate;
     std::string red_marker_str;
     std::string green_marker_str;
 
@@ -277,10 +279,12 @@ private:
     }
 
     bool isReached() {
-        ROS_DEBUG_STREAM(TAG << "isReached() called");
+        //ROS_DEBUG_STREAM(TAG << "isReached() called");
 
         // check to see it we are at the goal (within a set amount of error)
         bool atDestination = false;
+        ROS_DEBUG_STREAM(TAG << "wp_error_tolerance: " << wp_error_tolerance);
+        ROS_DEBUG_STREAM(TAG << "isReached current x: " << current_pos_.pose.position.x << " goal x: " << goal_pos_.point.x << "current y:" <<  current_pos_.pose.position.y << " goal y: " << goal_pos_.point.y);
         if (current_pos_.pose.position.x < goal_pos_.point.x+wp_error_tolerance & current_pos_.pose.position.x > goal_pos_.point.x-wp_error_tolerance) {
             if (current_pos_.pose.position.y < goal_pos_.point.y+wp_error_tolerance & current_pos_.pose.position.y > goal_pos_.point.y-wp_error_tolerance) {
                 atDestination = true;
@@ -331,26 +335,43 @@ private:
                 
                 if (findGate(green_marker, red_marker)) 
                 {
-                    goal_pos_.point = findMidpoint(green_marker, red_marker);
-                    est_gate_2_ = findEndpoint(green_marker.point, goal_pos_.point, dist_to_est_gate_2); 
+                    geometry_msgs::Point midpnt = findMidpoint(green_marker, red_marker);
+                    before_gate_ = findEndpoint(green_marker.point, midpnt, -dist_from_gate); 
+                    after_gate_ = findEndpoint(green_marker.point, midpnt, dist_from_gate); 
+                    est_gate_2_ = findEndpoint(green_marker.point, midpnt, dist_to_est_gate_2); 
                     green_id_ = green_marker.id;
                     red_id_ = red_marker.id;
-<<<<<<< HEAD
                     status = States::MOVE_BEFORE_GATE1;
-                    ROS_INFO_STREAM(TAG << "Moving to first gate");
-=======
-                    status = States::MOVE_TO_GATE1;
-                    ROS_INFO_STREAM(TAG << "Moving to first gate at x: " << goal_pos_.point.x << " ,y: " << goal_pos_.point.y); //TODO add angle to the midpoint
->>>>>>> e2b54d901c1653bc0174c87c532fb68c75bae51b
+                    goal_pos_.point = before_gate_;
+                    ROS_INFO_STREAM(TAG << "Moving to point before first gate at x: " << goal_pos_.point.x << " ,y: " << goal_pos_.point.y); //TODO add angle to the midpoint
                 }
                 }
                 break;
-
             case States::MOVE_BEFORE_GATE1: {
                 
                 if(!isReached())
                 {
-                    ROS_DEBUG_STREAM(TAG << "Midpoint 1 not reached yet");
+                    ROS_DEBUG_STREAM(TAG << "Point before 1st gate not reached yet");
+                    setDestination();
+                    ros::Rate rate(10);
+                    rate.sleep();
+                }
+            
+                if (isReached()) {
+                    status = States::MOVE_AFTER_GATE1;
+                    ROS_INFO_STREAM(TAG << "Point before 1st gate reached");
+                    ROS_INFO_STREAM(TAG << "Moving past gate 1");
+                    goal_pos_.point = after_gate_;
+
+                };
+                }
+                break;
+
+            case States::MOVE_AFTER_GATE1: {
+                
+                if(!isReached())
+                {
+                    ROS_DEBUG_STREAM(TAG << "Point after gate 1 not reached yet");
                     setDestination();
                     ros::Rate rate(10);
                     rate.sleep();
@@ -358,7 +379,7 @@ private:
             
                 if (isReached()) {
                     status = States::FIND_GATE2;
-                    ROS_INFO_STREAM(TAG << "Gate 1 reached");
+                    ROS_INFO_STREAM(TAG << "Gate 1 passed");
                     ROS_INFO_STREAM(TAG << "Moving forwards " << dist_to_est_gate_2 << " m until gate 2 identified");
 
                 };
@@ -379,18 +400,38 @@ private:
                 {
                     ROS_INFO_STREAM(TAG << "Gate 2 identified");
                     geometry_msgs::Point midpnt = findMidpoint(green_marker, red_marker);
-                    goal_pos_.point = findEndpoint(green_marker.point, midpnt, dist_to_est_gate_2); // extends the midpoint to actually pass through the gate
-                    ROS_INFO_STREAM(TAG << "Moving past 2nd gate at x: " << goal_pos_.point.x << " ,y: " << goal_pos_.point.y);
-                    status = States::MOVE_TO_GATE2;
+                    before_gate_ = findEndpoint(green_marker.point, midpnt, -dist_from_gate); 
+                    after_gate_ = findEndpoint(green_marker.point, midpnt, dist_from_gate); 
+                    goal_pos_.point = before_gate_;//findEndpoint(green_marker.point, midpnt, dist_to_est_gate_2); // extends the midpoint to actually pass through the gate
+                    ROS_INFO_STREAM(TAG << "Moving before 2nd gate at x: " << goal_pos_.point.x << " ,y: " << goal_pos_.point.y);
+                    status = States::MOVE_BEFORE_GATE2;
                 }
                 }
                 break;
 
-            case States::MOVE_TO_GATE2: {
+            case States::MOVE_BEFORE_GATE2: {
 
                 if(!isReached())
                 {
-                    ROS_DEBUG_STREAM(TAG << "Midpoint 2 not reached yet");
+                    ROS_DEBUG_STREAM(TAG << "Point before gate 2 not reached yet");
+                    setDestination();
+                    ros::Rate rate(10);
+                    rate.sleep();
+                }
+            
+                if (isReached()) {
+                    goal_pos_.point = after_gate_;
+                    status = States::MOVE_AFTER_GATE2;
+                    ROS_DEBUG_STREAM(TAG << "Point before gate 2 reached");
+                    ROS_INFO_STREAM(TAG << "Moving past gate 2");
+                };
+                }
+                break;
+            case States::MOVE_AFTER_GATE2: {
+
+                if(!isReached())
+                {
+                    ROS_DEBUG_STREAM(TAG << "Point past gate 2 not reached yet");
                     setDestination();
                     ros::Rate rate(10);
                     rate.sleep();
@@ -398,7 +439,7 @@ private:
             
                 if (isReached()) {
                     status = States::COMPLETE;
-                    ROS_DEBUG_STREAM(TAG << "Midpoint 2 reached");
+                    ROS_DEBUG_STREAM(TAG << "Passed gate 2");
                     ROS_INFO_STREAM(TAG << "Navigation Channel Complete");
                 };
                 }
