@@ -74,6 +74,8 @@ private:
     prop_mapper::PropArray props_; //temporarily replacing with fake props
     task_master::TaskGoalPosition goal_pos_;
     geometry_msgs::Point est_gate_2_; //estimated gate 2 until we find the actual gate 2
+    geometry_msgs::Point before_gate_; // holds a point before the gate
+    geometry_msgs::Point after_gate_;
 
     std::string TAG = "NAV_CHANNEL_CTRL: ";
 
@@ -96,7 +98,7 @@ private:
         BLUE
     };
 
-    enum States {NOT_STARTED, FIND_GATE1, MOVE_TO_GATE1, FIND_GATE2, MOVE_TO_GATE2, COMPLETE};
+    enum States {NOT_STARTED, FIND_GATE1, MOVE_BEFORE_GATE1, MOVE_AFTER_GATE1, FIND_GATE2, MOVE_BEFORE_GATE2, MOVE_AFTER_GATE2, COMPLETE}; 
 
     States status = States::NOT_STARTED;
 
@@ -333,13 +335,13 @@ private:
                     est_gate_2_ = findEndpoint(green_marker.point, goal_pos_.point, dist_to_est_gate_2); 
                     green_id_ = green_marker.id;
                     red_id_ = red_marker.id;
-                    status = States::MOVE_TO_GATE1;
+                    status = States::MOVE_BEFORE_GATE1;
                     ROS_INFO_STREAM(TAG << "Moving to first gate");
                 }
                 }
                 break;
 
-            case States::MOVE_TO_GATE1: {
+            case States::MOVE_BEFORE_GATE1: {
                 
                 if(!isReached())
                 {
