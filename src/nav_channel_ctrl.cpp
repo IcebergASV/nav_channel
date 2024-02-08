@@ -19,7 +19,8 @@ public:
         private_nh_.param<double>("error", wp_error_tolerance, 1.0); // Tolerance radius for determining if asv reached gate waypoint
         private_nh_.param<double>("gate_max_dist", gate_max_dist, 8.0); // max distance between asv and gate 1 at start, determines if we are looking at the right gate
         private_nh_.param<double>("gate_max_width", gate_max_width, 4.0); // max distance between two buoys in gate, accounts for max gap and diameter
-        private_nh_.param<double>("dist_past_gate", dist_past_gate, 2.0);
+        private_nh_.param<double>("dist_past_second_gate", dist_past_second_gate, 2.0);
+        private_nh_.param<double>("dist_to_est_gate_2", dist_to_est_gate_2, 2.0);
         private_nh_.param<std::string>("red_marker", red_marker_str, "red_marker");
         private_nh_.param<std::string>("green_marker", green_marker_str, "green_marker");
 
@@ -72,13 +73,15 @@ private:
     geometry_msgs::PoseStamped current_pos_;
     prop_mapper::PropArray props_; //temporarily replacing with fake props
     task_master::TaskGoalPosition goal_pos_;
+    geometry_msgs::Point est_gate_2_; //estimated gate 2 until we find the actual gate 2
 
     std::string TAG = "NAV_CHANNEL_CTRL: ";
 
     double wp_error_tolerance;
     double gate_max_dist;
     double gate_max_width;
-    double dist_past_gate;
+    double dist_past_second_gate;
+    double dist_to_est_gate_2;
     std::string red_marker_str;
     std::string green_marker_str;
 
@@ -102,7 +105,7 @@ private:
         ROS_DEBUG_STREAM(TAG << "setDestination() called");
         goal_pos_.task.current_task = task_master::Task::NAVIGATION_CHANNEL; 
         
-        ROS_INFO_STREAM(TAG << "Midpoint set to x: " << goal_pos_.point.x << ", y: "<< goal_pos_.point.y);
+        ROS_DEBUG_STREAM(TAG << "Setpoint x: " << goal_pos_.point.x << ", y: "<< goal_pos_.point.y);
 
         task_goal_position_.publish(goal_pos_);
     }
@@ -112,11 +115,11 @@ private:
         ROS_DEBUG_STREAM(TAG << "isValidMarker() called");
         bool valid = false;
         if (marker.prop_label == red_marker_str && colour == Colour::RED && marker.id != red_id_) {
-            ROS_INFO_STREAM(TAG << "Valid red marker found");
+            ROS_DEBUG_STREAM(TAG << "Valid red marker found");
             valid = true;
         }
         if (marker.prop_label == green_marker_str && colour == Colour::GREEN && marker.id != green_id_) {
-            ROS_INFO_STREAM(TAG << "Valid green marker found");
+            ROS_DEBUG_STREAM(TAG << "Valid green marker found");
             valid = true;
         }
         return valid;
@@ -236,7 +239,7 @@ private:
         
     }
     
-    geometry_msgs::Point findEndpoint(geometry_msgs::Point marker_1, geometry_msgs::Point midpnt)
+    geometry_msgs::Point findEndpoint(geometry_msgs::Point marker_1, geometry_msgs::Point midpnt, double dist)
     {
         ROS_DEBUG_STREAM(TAG << "findEndpoint() called");
         // Translate the a marker so we can get the rotation angle 
@@ -247,13 +250,13 @@ private:
         
         geometry_msgs::Point endpnt;
         endpnt.x = 0;
-        endpnt.y = dist_past_gate;
+        endpnt.y = dist;
 
         endpnt = rotatePoint(endpnt, angle);
 
         endpnt = translatePoint(endpnt, midpnt.x, midpnt.y);
 
-        ROS_INFO_STREAM(TAG << "Enpoint set " << dist_past_gate << " past the last gate at x: " << endpnt.x << ", y: " << endpnt.y );
+        ROS_DEBUG_STREAM(TAG << "Point set " << dist << "m past the gate at x: " << endpnt.x << ", y: " << endpnt.y );
 
         return endpnt;
     }
@@ -273,7 +276,6 @@ private:
 
     bool isReached() {
         ROS_DEBUG_STREAM(TAG << "isReached() called");
-        ROS_INFO_STREAM(TAG << "Checking if goal position reached");
 
         // check to see it we are at the goal (within a set amount of error)
         bool atDestination = false;
@@ -285,6 +287,16 @@ private:
         }
 
         return atDestination;
+    }
+
+    void holdPose()
+    {
+        ROS_DEBUG_STREAM(TAG << "holdPose()");
+        // set goal pose to current pose
+        goal_pos_.point = current_pos_.pose.position;
+        ROS_DEBUG_STREAM(TAG << "Holding position, goal pos set to x: " << current_pos_.pose.position.x << ", y: " << current_pos_.pose.position.y );
+        setDestination();
+        return;
     }
 
     void navChannelCallback(const task_master::Task msg) {
@@ -309,6 +321,8 @@ private:
                 // if have two good props, ie. red on left, green on right, within acceptable distance of each other, then go
 
                 ROS_INFO_STREAM(TAG << "Looking for the 1st gate");
+
+                holdPose(); // maintain current position
                 
                 prop_mapper::Prop green_marker; // TODO change to Prop ID
                 prop_mapper::Prop red_marker; // TODO change to Prop ID
@@ -316,15 +330,17 @@ private:
                 if (findGate(green_marker, red_marker)) 
                 {
                     goal_pos_.point = findMidpoint(green_marker, red_marker);
+                    est_gate_2_ = findEndpoint(green_marker.point, goal_pos_.point, dist_to_est_gate_2); 
                     green_id_ = green_marker.id;
                     red_id_ = red_marker.id;
                     status = States::MOVE_TO_GATE1;
+                    ROS_INFO_STREAM(TAG << "Moving to first gate");
                 }
                 }
                 break;
 
             case States::MOVE_TO_GATE1: {
-                ROS_INFO_STREAM(TAG << "Moving to first gate");
+                
                 if(!isReached())
                 {
                     ROS_DEBUG_STREAM(TAG << "Midpoint 1 not reached yet");
@@ -335,23 +351,28 @@ private:
             
                 if (isReached()) {
                     status = States::FIND_GATE2;
-                    ROS_DEBUG_STREAM(TAG << "Midpoint 1 reached");
+                    ROS_INFO_STREAM(TAG << "Gate 1 reached");
+                    ROS_INFO_STREAM(TAG << "Looking for the 2nd gate");
+
                 };
                 }
                 break;
             // should consider case where props are 100ft out, being out of lidar range
 
-            case States::FIND_GATE2: {
+            case States::FIND_GATE2: {               
 
-                ROS_INFO_STREAM(TAG << "Looking for the 2nd gate");
+                // move forwards until we find second gate
+                goal_pos_.point = est_gate_2_;
+                setDestination();
                 
                 prop_mapper::Prop green_marker; // TODO change to Prop ID
-                prop_mapper::Prop red_marker; // TODO change to Prop ID
+                prop_mapper::Prop red_marker; // TODO change to Prop ID                
                 
                 if (findGate(green_marker, red_marker)) 
                 {
                     geometry_msgs::Point midpnt = findMidpoint(green_marker, red_marker);
-                    goal_pos_.point = findEndpoint(green_marker.point, midpnt); // extends the midpoint to actually pass through the gate
+                    goal_pos_.point = findEndpoint(green_marker.point, midpnt, dist_to_est_gate_2); // extends the midpoint to actually pass through the gate
+                    ROS_INFO_STREAM(TAG << "Moving to 2nd gate");
                     status = States::MOVE_TO_GATE2;
                 }
                 }
@@ -359,7 +380,6 @@ private:
 
             case States::MOVE_TO_GATE2: {
 
-                ROS_INFO_STREAM(TAG << "Moving to 2nd gate");
                 if(!isReached())
                 {
                     ROS_DEBUG_STREAM(TAG << "Midpoint 2 not reached yet");
@@ -371,12 +391,12 @@ private:
                 if (isReached()) {
                     status = States::COMPLETE;
                     ROS_DEBUG_STREAM(TAG << "Midpoint 2 reached");
+                    ROS_INFO_STREAM(TAG << "Navigation Channel Complete");
                 };
                 }
                 break;
 
             case States::COMPLETE: {
-                ROS_INFO_STREAM(TAG << "Navigation Channel Complete");
                 task_status_.status = task_master::TaskStatus::COMPLETE;
                 }
                 break;
