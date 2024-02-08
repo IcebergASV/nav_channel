@@ -308,7 +308,7 @@ private:
             {
             case States::NOT_STARTED: 
             {
-                ROS_DEBUG_STREAM(TAG << "waiting for at least 2 markers");
+                ROS_INFO_STREAM(TAG << "waiting for at least 2 markers");
 
                 task_status_.status = task_master::TaskStatus::IN_PROGRESS;
 
@@ -335,8 +335,13 @@ private:
                     est_gate_2_ = findEndpoint(green_marker.point, goal_pos_.point, dist_to_est_gate_2); 
                     green_id_ = green_marker.id;
                     red_id_ = red_marker.id;
+<<<<<<< HEAD
                     status = States::MOVE_BEFORE_GATE1;
                     ROS_INFO_STREAM(TAG << "Moving to first gate");
+=======
+                    status = States::MOVE_TO_GATE1;
+                    ROS_INFO_STREAM(TAG << "Moving to first gate at x: " << goal_pos_.point.x << " ,y: " << goal_pos_.point.y); //TODO add angle to the midpoint
+>>>>>>> e2b54d901c1653bc0174c87c532fb68c75bae51b
                 }
                 }
                 break;
@@ -354,7 +359,7 @@ private:
                 if (isReached()) {
                     status = States::FIND_GATE2;
                     ROS_INFO_STREAM(TAG << "Gate 1 reached");
-                    ROS_INFO_STREAM(TAG << "Looking for the 2nd gate");
+                    ROS_INFO_STREAM(TAG << "Moving forwards " << dist_to_est_gate_2 << " m until gate 2 identified");
 
                 };
                 }
@@ -372,9 +377,10 @@ private:
                 
                 if (findGate(green_marker, red_marker)) 
                 {
+                    ROS_INFO_STREAM(TAG << "Gate 2 identified");
                     geometry_msgs::Point midpnt = findMidpoint(green_marker, red_marker);
                     goal_pos_.point = findEndpoint(green_marker.point, midpnt, dist_to_est_gate_2); // extends the midpoint to actually pass through the gate
-                    ROS_INFO_STREAM(TAG << "Moving to 2nd gate");
+                    ROS_INFO_STREAM(TAG << "Moving past 2nd gate at x: " << goal_pos_.point.x << " ,y: " << goal_pos_.point.y);
                     status = States::MOVE_TO_GATE2;
                 }
                 }
