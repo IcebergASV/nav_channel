@@ -7,9 +7,9 @@ dist_to_est_gate_2: 5 # how far from the first gate will we set our estimated se
 dist_from_gate: 2 # midpoint waypoints will be set this distance before and after the gate
 colour_blind: true
 # Switching Setpoint Modes
-use_pixawk_reached: true
+use_pixawk_reached: false
 freq_disc_mode: true
-freq_disc_count: 6
+freq_disc_count: 3
 freq: 2 # in hertz
 
 red_marker: "red_marker"

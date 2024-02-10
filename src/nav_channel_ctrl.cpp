@@ -303,7 +303,7 @@ private:
             }
         }
 
-        marker_arr.erase(marker_arr.begin()+closest_idx); // remove closest element
+        //marker_arr.erase(marker_arr.begin()+closest_idx); // remove closest element
 
         while(marker_arr.size() > 0 && !gate_found)
         {
@@ -321,7 +321,8 @@ private:
                 }
                 else
                 {
-                    marker_arr.erase(marker_arr.begin()+closest_idx); // marker does not meet criteria - remove it
+                    ROS_DEBUG_STREAM(TAG << "maker not in gate");
+                    //marker_arr.erase(marker_arr.begin()+closest_idx); // marker does not meet criteria - remove it
                 }
             }
         }
