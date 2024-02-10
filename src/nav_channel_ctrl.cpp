@@ -24,6 +24,7 @@ public:
         private_nh_.param<double>("dist_past_second_gate", dist_past_second_gate, 2.0);
         private_nh_.param<double>("dist_to_est_gate_2", dist_to_est_gate_2, 2.0);
         private_nh_.param<double>("dist_from_gate", dist_from_gate, 1.0);
+        private_nh_.param<bool>("color_blind", colour_blind_p, true);
 
         private_nh_.param<bool>("use_pixawk_reached", use_pixawk_reached_p, 2.0);
         private_nh_.param<bool>("freq_disc_mode", freq_disc_mode_p, 2.0);
@@ -111,6 +112,7 @@ private:
     double dist_from_gate;
     bool use_pixawk_reached_p;
     bool freq_disc_mode_p;
+    bool colour_blind_p;
     int freq_disc_count_p;
     double freq_p;
     int count_;
@@ -229,7 +231,106 @@ private:
         return angle;
     }
 
-    bool findGate(prop_mapper::Prop &green_marker, prop_mapper::Prop &red_marker)
+    double calcHypotenuse(prop_mapper::Prop prop) {
+        // Calculate the square of the lengths of the catheti
+        double x = prop.point.x;
+        double y = prop.point.y;
+        double x_squared = x * x;
+        double y_squared = y * y;
+
+        // Calculate the square of the length of the hypotenuse
+        double hypotenuse_squared = x_squared + y_squared;
+
+        // Calculate the length of the hypotenuse by taking the square root
+        double hypotenuse = std::sqrt(hypotenuse_squared);
+
+        return hypotenuse;
+    }
+
+    double calcDistance(geometry_msgs::Point pnt1, geometry_msgs::Point pnt2 ) {
+        double x1 = pnt1.x;
+        double y1 = pnt1.y;
+        double x2 = pnt2.x;
+        double y2 = pnt2.y;
+        double dx = x2 - x1;
+        double dy = y2 - y1;
+
+        double distance = std::sqrt(dx * dx + dy * dy);
+
+        return distance;
+    }
+    
+    bool findGateGreyScale(prop_mapper::Prop &green_marker, prop_mapper::Prop &red_marker)
+    {
+        ROS_DEBUG_STREAM(TAG << "findGate() called");
+
+        int green_idx;
+        int red_idx;
+
+        //bool green_found = false;
+        //bool red_found = false;
+        bool gate_found = false;
+
+        //int i = 0;
+
+        std::vector<prop_mapper::Prop> marker_arr;
+
+        // pull out markers
+        for (int n =0; n< props_.props.size(); n++)
+        {
+            if ( props_.props[n].prop_label == "red_marker" || props_.props[n].prop_label == "green_marker" || props_.props[n].prop_label == "marker" || props_.props[n].prop_label == "buoy")
+            {
+                ROS_DEBUG_STREAM(TAG  << "marker added to marker array");
+                marker_arr.push_back(props_.props[n]);
+            }
+        }
+
+        // get closest marker
+        prop_mapper::Prop closest_marker;
+        closest_marker.point.x = 1000;
+        closest_marker.point.y = 1000;
+        int closest_idx = 0;
+
+        for ( int i = 0; i < marker_arr.size(); i++)
+        {
+            if ( calcHypotenuse(marker_arr[i]) < calcHypotenuse(closest_marker))
+            {
+                closest_marker = marker_arr[i];
+                closest_idx = i;
+                
+            }
+        }
+
+        marker_arr.erase(marker_arr.begin()+closest_idx); // remove closest element
+
+        while(marker_arr.size() > 0 && !gate_found)
+        {
+            for ( int j = 0; j < marker_arr.size(); j++)
+            {
+                if ( calcDistance(closest_marker.point, marker_arr[j].point) < gate_max_width  && calcDistance(closest_marker.point, current_pos_.pose.position) < gate_max_dist )
+                {
+                    //valid gate found
+                    green_marker = closest_marker;
+                    red_marker = marker_arr[j];
+                    gate_found = true;
+                    closest_idx = j;
+                }
+                else
+                {
+                    marker_arr.erase(marker_arr.begin()+closest_idx); // marker does not meet criteria - remove it
+                }
+            }
+        }
+        
+        if (gate_found)
+        {
+            return true;
+        }
+        return false;
+
+    }
+
+    bool findGateWithColours(prop_mapper::Prop &green_marker, prop_mapper::Prop &red_marker)
     {
         ROS_DEBUG_STREAM(TAG << "findGate() called");
 
@@ -264,14 +365,21 @@ private:
                     red_marker = props_.props[red_idx];
                     green_marker = props_.props[green_idx];
                     gate_found = true;
-
-                    ROS_INFO_STREAM(TAG << "Gate found with marker IDs " << red_marker.id << ", " << green_marker.id);
                 }
             }
             i++;
         }
 
         return gate_found;
+    }
+
+    bool findGate(prop_mapper::Prop &green_marker, prop_mapper::Prop &red_marker)
+    {
+        if (colour_blind_p)
+        {
+            return findGateGreyScale(green_marker, red_marker);
+        }
+        return findGateWithColours(green_marker, red_marker);
     }
 
     geometry_msgs::Point translatePoint(geometry_msgs::Point point, double x_trans, double y_trans )
