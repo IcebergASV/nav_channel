@@ -15,7 +15,7 @@
 
 class NavChannel {
 public:
-    NavChannel(): nh_(""), private_nh_("~"), green_id_(-1), red_id_(-1)
+    NavChannel(): nh_(""), private_nh_("~"), green_id_(-1), red_id_(-1), reached_count_(0)
     {
         // ROS parameters
         private_nh_.param<double>("error", wp_error_tolerance, 1.0); // Tolerance radius for determining if asv reached gate waypoint
@@ -104,11 +104,13 @@ private:
     std::string TAG = "NAV_CHANNEL_CTRL: ";
 
     mavros_msgs::State current_state_;
+    mavros_msgs::State prev_state_;
     double wp_error_tolerance;
     double gate_max_dist;
     double gate_max_width;
     double dist_past_second_gate;
     double dist_to_est_gate_2;
+    int reached_count_;
     double dist_from_gate;
     bool use_pixawk_reached_p;
     bool freq_disc_mode_p;
@@ -278,7 +280,7 @@ private:
         // pull out markers
         for (int n =0; n< props_.props.size(); n++)
         {
-            if ( props_.props[n].prop_label == "red_marker" || props_.props[n].prop_label == "green_marker" || props_.props[n].prop_label == "marker" || props_.props[n].prop_label == "buoy")
+            if ( props_.props[n].prop_label == "red_marker" || props_.props[n].prop_label == "green_marker" || props_.props[n].prop_label == "marker" && props_.props[n].id != green_id_ && props_.props[n].id != red_id_  )
             {
                 ROS_DEBUG_STREAM(TAG  << "marker added to marker array");
                 marker_arr.push_back(props_.props[n]);
@@ -312,6 +314,8 @@ private:
                     //valid gate found
                     green_marker = closest_marker;
                     red_marker = marker_arr[j];
+                    green_id_ = closest_marker.id;
+                    red_id_ = marker_arr[j].id;
                     gate_found = true;
                     closest_idx = j;
                 }
@@ -475,18 +479,26 @@ private:
 
     void state_cb(const mavros_msgs::State::ConstPtr& msg)
     {
-      current_state_ = *msg;
+        
+        current_state_ = *msg;
+        if (prev_state_.mode == "MANUAL" && current_state_.mode == "GUIDED")
+        {
+            reached_count_ = 0;
+        }
+        prev_state_ = current_state_;
     }
 
     void missionReachedCallback(const mavros_msgs::WaypointReached msg)
     {
-        if(current_state_.mode == "GUIDED")
-        {
+        ROS_INFO_STREAM(TAG << "reached count: " << reached_count_);
+        if(current_state_.mode == "GUIDED" )//&& reached_count_ == freq_disc_count_p-1)
+        {            
             ROS_INFO_STREAM(TAG << "Setpoint reached!");
             is_reached_ = true;
+            reached_count_ = 0;
             return;
         }
-
+        reached_count_++;
     }
 
     void navChannelCallback(const task_master::Task msg) {
