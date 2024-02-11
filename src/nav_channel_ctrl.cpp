@@ -266,6 +266,7 @@ private:
     {
         ROS_DEBUG_STREAM(TAG << "findGate() called");
 
+
         int green_idx;
         int red_idx;
 
@@ -280,6 +281,7 @@ private:
         // pull out markers
         for (int n =0; n< props_.props.size(); n++)
         {
+            ROS_DEBUG_STREAM(TAG << "Pull out markers from array");
             if ( props_.props[n].prop_label == "red_marker" || props_.props[n].prop_label == "green_marker" || props_.props[n].prop_label == "marker" && props_.props[n].id != green_id_ && props_.props[n].id != red_id_  )
             {
                 ROS_DEBUG_STREAM(TAG  << "marker added to marker array");
@@ -292,6 +294,7 @@ private:
         closest_marker.point.x = 1000;
         closest_marker.point.y = 1000;
         int closest_idx = 0;
+        bool can_erase = false;
 
         for ( int i = 0; i < marker_arr.size(); i++)
         {
@@ -299,11 +302,16 @@ private:
             {
                 closest_marker = marker_arr[i];
                 closest_idx = i;
+                can_erase = true;
                 
             }
         }
 
-        //marker_arr.erase(marker_arr.begin()+closest_idx); // remove closest element
+        //if (can_erase)
+        //{
+        //    marker_arr.erase(marker_arr.begin()+closest_idx); // remove closest element
+        //}
+        
 
         while(marker_arr.size() > 0 && !gate_found)
         {
@@ -337,7 +345,7 @@ private:
 
     bool findGateWithColours(prop_mapper::Prop &green_marker, prop_mapper::Prop &red_marker)
     {
-        ROS_DEBUG_STREAM(TAG << "findGate() called");
+        ROS_DEBUG_STREAM(TAG << "findGate with colours called");
 
         int green_idx;
         int red_idx;
@@ -564,6 +572,7 @@ private:
                     ROS_INFO_STREAM(TAG << "Point before 1st gate reached");
                     ROS_INFO_STREAM(TAG << "Moving past gate 1");
                     goal_pos_.point = after_gate_;
+                    if ( freq_disc_mode_p ) { resetTimer();}
 
                 };
                 }
