@@ -593,6 +593,8 @@ private:
                     status = States::FIND_GATE2;
                     ROS_INFO_STREAM(TAG << "Gate 1 passed");
                     ROS_INFO_STREAM(TAG << "Moving forwards " << dist_to_est_gate_2 << " m until gate 2 identified");
+                    goal_pos_.point = est_gate_2_;
+                    if ( freq_disc_mode_p ) { resetTimer();}
                     
 
                 };
